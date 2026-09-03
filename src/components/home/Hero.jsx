@@ -8,6 +8,7 @@ import {
   ShieldCheck,
 } from "lucide-react"
 import { motion } from "framer-motion"
+import { Link } from "react-router-dom"
 
 function Hero() {
   return (
@@ -53,14 +54,17 @@ function Hero() {
           {/* Buttons */}
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
 
-            <button className="group flex items-center justify-center gap-2 rounded-2xl bg-[#0b8f4d] px-6 py-4 font-semibold text-white shadow-xl shadow-green-800/20 transition hover:-translate-y-1 hover:bg-[#087b42]">
+            <Link
+              to="/scanner"
+              className="group flex items-center justify-center gap-2 rounded-2xl bg-[#0b8f4d] px-6 py-4 font-semibold text-white shadow-xl shadow-green-800/20 transition hover:-translate-y-1 hover:bg-[#087b42]"
+            >
               <Camera size={19} />
               Scan Waste
               <ArrowRight
                 size={17}
                 className="transition group-hover:translate-x-1"
               />
-            </button>
+            </Link>
 
             <button className="rounded-2xl border border-slate-200 bg-white px-6 py-4 font-semibold text-slate-700 shadow-sm transition hover:border-green-200 hover:bg-green-50">
               Explore Platform
@@ -104,7 +108,8 @@ function Hero() {
             <div className="relative h-[430px] overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-[#315e46] via-[#1c3d2b] to-[#091a10]">
 
               {/* Camera grid */}
-              <div className="absolute inset-0 opacity-20"
+              <div
+                className="absolute inset-0 opacity-20"
                 style={{
                   backgroundImage:
                     "linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px)",

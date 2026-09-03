@@ -5,6 +5,7 @@ const Home = lazy(() => import("../pages/Home"))
 const Login = lazy(() => import("../pages/Login"))
 const Register = lazy(() => import("../pages/Register"))
 const Dashboard = lazy(() => import("../pages/Dashboard"))
+const Scanner = lazy(() => import("../pages/Scanner"))
 
 function PageLoader() {
   return (
@@ -30,6 +31,7 @@ function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/scanner" element={<Scanner />} />
       </Routes>
     </Suspense>
   )
