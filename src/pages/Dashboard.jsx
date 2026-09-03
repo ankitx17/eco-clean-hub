@@ -1,257 +1,389 @@
 import {
-  ScanLine,
+  ArrowRight,
+  Camera,
+  CheckCircle2,
+  ChevronRight,
+  Leaf,
   MapPin,
-  ShieldCheck,
-  Coins,
-  TrendingUp,
   Recycle,
-  ArrowUpRight,
+  ShieldCheck,
+  Sparkles,
+  Trophy,
 } from "lucide-react"
+
 import { Link } from "react-router-dom"
 
-const stats = [
-  {
-    title: "Eco Credits",
-    value: "1,250",
-    change: "+12%",
-    icon: Coins,
-  },
-  {
-    title: "Waste Actions",
-    value: "48",
-    change: "+8 this month",
-    icon: Recycle,
-  },
-  {
-    title: "Verified",
-    value: "36",
-    change: "75% verified",
-    icon: ShieldCheck,
-  },
-  {
-    title: "Impact",
-    value: "32.4 kg",
-    change: "Waste diverted",
-    icon: TrendingUp,
-  },
-]
-
-const activities = [
-  {
-    type: "Plastic",
-    date: "Today, 10:30 AM",
-    credits: "+50",
-    status: "Verified",
-  },
-  {
-    type: "Paper",
-    date: "Yesterday, 5:20 PM",
-    credits: "+30",
-    status: "Verified",
-  },
-  {
-    type: "E-waste",
-    date: "Aug 31, 2:15 PM",
-    credits: "+80",
-    status: "Pending",
-  },
-]
+import EcoCreditsCard from "../components/dashboard/EcoCreditsCard"
+import RecentActivity from "../components/dashboard/RecentActivity"
+import DashboardHeader from "../components/dashboard/DashboardHeader"
+import DashboardStats from "../components/dashboard/DashboardStats"
+import ImpactAnalytics from "../components/dashboard/ImpactAnalytics"
 
 function Dashboard() {
+  const activities = [
+    {
+      title: "Plastic bottle recycled",
+      date: "Today, 10:42 AM",
+      credits: "+25",
+      status: "Verified",
+      icon: Recycle,
+    },
+    {
+      title: "Paper waste disposed",
+      date: "Yesterday, 5:18 PM",
+      credits: "+20",
+      status: "Verified",
+      icon: CheckCircle2,
+    },
+    {
+      title: "Organic waste submitted",
+      date: "28 Aug, 8:35 AM",
+      credits: "+30",
+      status: "Pending",
+      icon: Leaf,
+    },
+  ]
+
+  const quickActions = [
+    {
+      title: "Scan Waste",
+      description: "Identify your waste with AI",
+      icon: Camera,
+      to: "/scanner",
+    },
+    {
+      title: "Find MRF",
+      description: "Locate the nearest centre",
+      icon: MapPin,
+      to: "/mrf",
+    },
+    {
+      title: "Verify Disposal",
+      description: "Submit proof of disposal",
+      icon: ShieldCheck,
+      to: "/verification",
+    },
+    {
+      title: "View Rewards",
+      description: "Redeem your Eco-Credits",
+      icon: Trophy,
+      to: "/rewards",
+    },
+  ]
+
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-[#f6faf7] text-[#14231a]">
 
-      {/* Header */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <p className="mb-1 text-sm font-medium text-[#176b45]">
-            Citizen Dashboard
-          </p>
+      {/* HEADER */}
+      <DashboardHeader />
 
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Good morning, Ankit 👋
-          </h1>
+      {/* MAIN */}
+      <main className="mx-auto max-w-7xl px-5 py-8 lg:px-8">
 
-          <p className="mt-2 text-gray-500">
-            Make your next waste action count for the planet.
-          </p>
-        </div>
+        {/* WELCOME */}
+        <section className="mb-8">
+          <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
 
-        <Link
-          to="/scanner"
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#176b45] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#176b45]/20 transition hover:bg-[#125c3b]"
-        >
-          <ScanLine size={18} />
-          Scan Waste
-        </Link>
-      </div>
+            <div>
 
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon
-
-          return (
-            <div
-              key={stat.title}
-              className="rounded-2xl border border-[#dce9df] bg-white p-5 shadow-sm"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e7f5ec] text-[#176b45]">
-                  <Icon size={21} />
-                </div>
-
-                <ArrowUpRight
-                  size={18}
-                  className="text-gray-400"
-                />
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-[#176b45]">
+                <Sparkles size={14} />
+                Keep making an impact
               </div>
 
-              <p className="mt-5 text-sm text-gray-500">
-                {stat.title}
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                Welcome back, Ankit 👋
+              </h1>
+
+              <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 sm:text-base">
+                Your small actions create a cleaner, greener future.
+                Keep recycling and grow your environmental impact.
               </p>
 
-              <div className="mt-1 flex items-end justify-between">
-                <h2 className="text-2xl font-bold">
-                  {stat.value}
-                </h2>
-
-                <span className="text-xs font-semibold text-[#176b45]">
-                  {stat.change}
-                </span>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Quick Actions */}
-      <section>
-        <div className="mb-4">
-          <h2 className="text-xl font-bold">
-            Quick Actions
-          </h2>
-
-          <p className="mt-1 text-sm text-gray-500">
-            Start your next sustainable action.
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <Link
-            to="/scanner"
-            className="group rounded-2xl border border-[#cfe5d6] bg-[#176b45] p-6 text-white transition hover:-translate-y-1 hover:shadow-xl"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15">
-                <ScanLine size={23} />
-              </div>
-
-              <ArrowUpRight
-                size={22}
-                className="transition group-hover:translate-x-1 group-hover:-translate-y-1"
-              />
             </div>
 
-            <h3 className="mt-8 text-xl font-bold">
-              Scan Your Waste
-            </h3>
+            <Link
+              to="/scanner"
+              className="inline-flex w-fit items-center gap-2 rounded-xl bg-[#176b45] px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#125a39]"
+            >
+              <Camera size={18} />
+              Scan Waste
+              <ArrowRight size={16} />
+            </Link>
 
-            <p className="mt-2 max-w-md text-sm leading-6 text-white/75">
-              Use AI to identify your waste and get the correct disposal
-              recommendation.
-            </p>
-          </Link>
+          </div>
+        </section>
 
-          <Link
-            to="/mrf"
-            className="group rounded-2xl border border-[#dce9df] bg-white p-6 transition hover:-translate-y-1 hover:shadow-xl"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#e7f5ec] text-[#176b45]">
-                <MapPin size={23} />
-              </div>
+        {/* STATS */}
+        <DashboardStats />
 
-              <ArrowUpRight
-                size={22}
-                className="text-gray-400 transition group-hover:translate-x-1 group-hover:-translate-y-1"
-              />
-            </div>
+        {/* ECO CREDITS */}
+        <section className="mb-8">
+          <EcoCreditsCard />
+        </section>
 
-            <h3 className="mt-8 text-xl font-bold">
-              Find Nearby MRF
-            </h3>
+        {/* PERSONAL IMPACT ANALYTICS */}
+        <ImpactAnalytics />
 
-            <p className="mt-2 max-w-md text-sm leading-6 text-gray-500">
-              Discover nearby material recovery facilities and collection
-              centres that accept your waste.
-            </p>
-          </Link>
-        </div>
-      </section>
+        {/* QUICK ACTIONS */}
+        <section className="mb-8">
 
-      {/* Activity */}
-      <section className="rounded-2xl border border-[#dce9df] bg-white p-5 sm:p-6">
-        <div className="flex items-center justify-between">
-          <div>
+          <div className="mb-4">
             <h2 className="text-xl font-bold">
-              Recent Activity
+              Quick Actions
             </h2>
 
-            <p className="mt-1 text-sm text-gray-500">
-              Your latest waste-management actions.
+            <p className="mt-1 text-sm text-slate-500">
+              Continue your waste-management journey
             </p>
           </div>
 
-          <Link
-            to="/activity"
-            className="text-sm font-semibold text-[#176b45] hover:underline"
-          >
-            View all
-          </Link>
-        </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-        <div className="mt-6 divide-y divide-[#edf2ee]">
-          {activities.map((activity) => (
-            <div
-              key={`${activity.type}-${activity.date}`}
-              className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e7f5ec] text-[#176b45]">
-                  <Recycle size={18} />
-                </div>
+            {quickActions.map((action) => {
 
-                <div>
-                  <p className="font-semibold">
-                    {activity.type} Waste
-                  </p>
+              const Icon = action.icon
 
-                  <p className="text-xs text-gray-500">
-                    {activity.date}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    activity.status === "Verified"
-                      ? "bg-[#e7f5ec] text-[#176b45]"
-                      : "bg-amber-50 text-amber-700"
-                  }`}
+              return (
+                <Link
+                  key={action.title}
+                  to={action.to}
+                  className="group rounded-2xl border border-[#dfeae3] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-[#bcd8c7] hover:shadow-lg"
                 >
-                  {activity.status}
+
+                  <div className="mb-5 flex items-center justify-between">
+
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#edf8f1] text-[#176b45] transition group-hover:bg-[#176b45] group-hover:text-white">
+                      <Icon size={21} />
+                    </div>
+
+                    <ChevronRight
+                      size={18}
+                      className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-[#176b45]"
+                    />
+
+                  </div>
+
+                  <h3 className="font-semibold">
+                    {action.title}
+                  </h3>
+
+                  <p className="mt-1 text-sm leading-5 text-slate-500">
+                    {action.description}
+                  </p>
+
+                </Link>
+              )
+            })}
+
+          </div>
+
+        </section>
+
+        {/* LOWER CONTENT */}
+        <section className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
+
+          {/* ACTIVITY */}
+          <div className="rounded-2xl border border-[#dfeae3] bg-white p-5 shadow-sm sm:p-6">
+
+            <div className="mb-6 flex items-center justify-between">
+
+              <div>
+                <h2 className="text-xl font-bold">
+                  Recent Activity
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Your latest waste-management actions
+                </p>
+              </div>
+
+              <Link
+                to="/activity"
+                className="text-sm font-semibold text-[#176b45] hover:underline"
+              >
+                View all
+              </Link>
+
+            </div>
+
+            <div className="space-y-3">
+
+              {activities.map((activity) => {
+
+                const Icon = activity.icon
+
+                return (
+                  <div
+                    key={activity.title}
+                    className="flex items-center gap-4 rounded-xl border border-slate-100 p-4"
+                  >
+
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#edf8f1] text-[#176b45]">
+                      <Icon size={19} />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+
+                      <h3 className="truncate text-sm font-semibold">
+                        {activity.title}
+                      </h3>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        {activity.date}
+                      </p>
+
+                    </div>
+
+                    <div className="text-right">
+
+                      <p className="text-sm font-bold text-[#176b45]">
+                        {activity.credits}
+                      </p>
+
+                      <span
+                        className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                          activity.status === "Verified"
+                            ? "bg-green-50 text-green-700"
+                            : "bg-yellow-50 text-yellow-700"
+                        }`}
+                      >
+                        {activity.status}
+                      </span>
+
+                    </div>
+
+                  </div>
+                )
+              })}
+
+            </div>
+
+          </div>
+
+          {/* IMPACT */}
+          <div className="overflow-hidden rounded-2xl bg-[#176b45] p-6 text-white shadow-xl">
+
+            <div className="flex items-start justify-between">
+
+              <div>
+                <p className="text-sm font-medium text-green-100">
+                  Your Environmental Impact
+                </p>
+
+                <h2 className="mt-2 text-3xl font-bold">
+                  Making a difference
+                </h2>
+              </div>
+
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
+                <Leaf size={22} />
+              </div>
+
+            </div>
+
+            <div className="my-7 h-px bg-white/15" />
+
+            <div className="space-y-5">
+
+              <div>
+
+                <div className="mb-2 flex justify-between text-sm">
+
+                  <span className="text-green-100">
+                    Waste diverted
+                  </span>
+
+                  <span className="font-semibold">
+                    24.6 kg
+                  </span>
+
+                </div>
+
+                <div className="h-2 overflow-hidden rounded-full bg-white/15">
+                  <div className="h-full w-[72%] rounded-full bg-white" />
+                </div>
+
+              </div>
+
+              <div>
+
+                <div className="mb-2 flex justify-between text-sm">
+
+                  <span className="text-green-100">
+                    Monthly goal
+                  </span>
+
+                  <span className="font-semibold">
+                    72%
+                  </span>
+
+                </div>
+
+                <div className="h-2 overflow-hidden rounded-full bg-white/15">
+                  <div className="h-full w-[72%] rounded-full bg-white" />
+                </div>
+
+              </div>
+
+            </div>
+
+            <div className="mt-7 rounded-xl bg-white/10 p-4">
+
+              <p className="text-xs text-green-100">
+                Keep going
+              </p>
+
+              <p className="mt-1 text-sm font-semibold">
+                You're on track to beat your monthly recycling goal.
+              </p>
+
+            </div>
+
+          </div>
+
+        </section>
+
+        {/* FINAL CTA */}
+        <section className="mt-8 rounded-2xl border border-[#dfeae3] bg-white p-6 shadow-sm sm:p-8">
+
+          <div className="flex flex-col items-start justify-between gap-5 md:flex-row md:items-center">
+
+            <div>
+
+              <div className="mb-2 flex items-center gap-2 text-[#176b45]">
+
+                <Sparkles size={17} />
+
+                <span className="text-sm font-semibold">
+                  Next step
                 </span>
 
-                <span className="font-bold text-[#176b45]">
-                  {activity.credits}
-                </span>
               </div>
+
+              <h2 className="text-xl font-bold sm:text-2xl">
+                Have some waste to dispose?
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Scan it first and let Eco Clean Hub guide you.
+              </p>
+
             </div>
-          ))}
-        </div>
-      </section>
+
+            <Link
+              to="/scanner"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#176b45] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#125a39]"
+            >
+              Start Scanning
+              <ArrowRight size={17} />
+            </Link>
+
+          </div>
+
+        </section>
+
+      </main>
     </div>
   )
 }
