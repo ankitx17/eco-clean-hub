@@ -3,20 +3,24 @@ export async function classifyWaste(imageFile) {
     throw new Error("No waste image provided.")
   }
 
-  // Demo classifier for the Scanner UI.
-  // This will be replaced with the real AI model/API integration.
+  const formData = new FormData()
+  formData.append("image", imageFile)
 
-  await new Promise((resolve) => setTimeout(resolve, 1800))
+  const response = await fetch(
+    "http://127.0.0.1:3001/api/classify-waste",
+    {
+      method: "POST",
+      body: formData,
+    }
+  )
 
-  return {
-    category: "Plastic",
-    type: "Recyclable",
-    confidence: 96.4,
-    guidance: [
-      "Empty the container before disposal.",
-      "Rinse it if possible.",
-      "Place it with dry/recyclable waste.",
-      "Avoid mixing it with wet waste.",
-    ],
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(
+      data.details || data.error || "Failed to classify waste."
+    )
   }
+
+  return data
 }

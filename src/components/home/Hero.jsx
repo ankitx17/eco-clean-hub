@@ -8,15 +8,31 @@ import {
   ShieldCheck,
 } from "lucide-react"
 import { motion } from "framer-motion"
-import { Link } from "react-router-dom"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import useAuth from "../../hooks/useAuth"
+import LoginModal from "./LoginModal"
 
 function Hero() {
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const navigate = useNavigate()
+  const { isAuthenticated, loading } = useAuth()
+
+  const handleScanWaste = () => {
+    if (loading) return
+
+    if (isAuthenticated) {
+      navigate("/scanner")
+    } else {
+      setShowLoginModal(true)
+    }
+  }
+
   return (
     <section
       id="home"
       className="relative overflow-hidden px-5 pb-20 pt-36 md:pb-28 md:pt-44"
     >
-
       {/* Background decoration */}
       <div className="pointer-events-none absolute -left-32 top-40 h-96 w-96 rounded-full bg-green-200/40 blur-3xl" />
       <div className="pointer-events-none absolute -right-32 top-20 h-[500px] w-[500px] rounded-full bg-emerald-100/50 blur-3xl" />
@@ -29,7 +45,6 @@ function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
         >
-
           {/* Badge */}
           <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-green-200 bg-white px-4 py-2 text-sm font-medium text-[#0b8f4d] shadow-sm">
             <Sparkles size={15} />
@@ -37,7 +52,6 @@ function Hero() {
           </div>
 
           <h1 className="max-w-3xl text-5xl font-black leading-[1.03] tracking-[-0.04em] text-[#102119] sm:text-6xl lg:text-7xl">
-
             Turn waste into
 
             <span className="relative ml-3 inline-block text-[#0b8f4d]">
@@ -54,9 +68,11 @@ function Hero() {
           {/* Buttons */}
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
 
-            <Link
-              to="/scanner"
-              className="group flex items-center justify-center gap-2 rounded-2xl bg-[#0b8f4d] px-6 py-4 font-semibold text-white shadow-xl shadow-green-800/20 transition hover:-translate-y-1 hover:bg-[#087b42]"
+            <button
+              type="button"
+              onClick={handleScanWaste}
+              disabled={loading}
+              className="group flex items-center justify-center gap-2 rounded-2xl bg-[#0b8f4d] px-6 py-4 font-semibold text-white shadow-xl shadow-green-800/20 transition hover:-translate-y-1 hover:bg-[#087b42] disabled:cursor-not-allowed disabled:opacity-70"
             >
               <Camera size={19} />
               Scan Waste
@@ -64,7 +80,7 @@ function Hero() {
                 size={17}
                 className="transition group-hover:translate-x-1"
               />
-            </Link>
+            </button>
 
             <button className="rounded-2xl border border-slate-200 bg-white px-6 py-4 font-semibold text-slate-700 shadow-sm transition hover:border-green-200 hover:bg-green-50">
               Explore Platform
@@ -100,7 +116,6 @@ function Hero() {
           transition={{ duration: 0.8, delay: 0.15 }}
           className="relative mx-auto w-full max-w-[500px]"
         >
-
           {/* Main card */}
           <div className="relative overflow-hidden rounded-[2rem] border border-white bg-[#10251a] p-4 shadow-2xl shadow-green-950/20">
 
@@ -242,6 +257,13 @@ function Hero() {
         </motion.div>
 
       </div>
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <LoginModal
+          onClose={() => setShowLoginModal(false)}
+        />
+      )}
     </section>
   )
 }
