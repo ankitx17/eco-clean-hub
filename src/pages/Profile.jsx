@@ -1,12 +1,9 @@
 import {
-  useState,
-} from "react"
-
-import {
   Pencil,
   CheckCircle2,
   X,
   Save,
+  ArrowLeft,
 } from "lucide-react"
 
 import useProfile from "../hooks/useProfile"
@@ -71,9 +68,33 @@ function Profile() {
   }
 
 
+  /*
+   * IMPORTANT:
+   * While editing, use editForm so selected photo
+   * appears immediately without waiting for Save.
+   *
+   * Cancel will restore the original profile because
+   * cancelEditing resets editForm back to profile.
+   */
+  const displayedProfile = editing
+    ? editForm
+    : profile
+
+
   return (
     <div className="min-h-screen bg-[#f6faf7] px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
+
+        {/* Back */}
+        <button
+          type="button"
+          onClick={() => navigate("/dashboard")}
+          className="mb-6 inline-flex items-center gap-3 rounded-xl px-1 py-2 text-base font-semibold text-slate-600 transition hover:text-[#0b8f4d]"
+        >
+          <ArrowLeft size={21} />
+          Back to Dashboard
+        </button>
+
 
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -92,6 +113,7 @@ function Profile() {
             </p>
           </div>
 
+
           <div className="flex gap-3">
 
             {editing ? (
@@ -109,7 +131,7 @@ function Profile() {
                   type="button"
                   onClick={saveProfile}
                   disabled={saving}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#0b8f4d] px-5 py-3 font-semibold text-white transition hover:bg-[#087b42] disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#0b8f4d] px-5 py-3 font-semibold text-white transition hover:bg-[#087b42] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Save size={17} />
 
@@ -141,15 +163,15 @@ function Profile() {
           </div>
         )}
 
+
         {error && (
           <div className="mb-5 flex items-center justify-between gap-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
             <span>{error}</span>
 
             <button
               type="button"
-              onClick={() =>
-                setError("")
-              }
+              onClick={() => setError("")}
+              aria-label="Close error"
             >
               <X size={17} />
             </button>
@@ -158,7 +180,12 @@ function Profile() {
 
 
         <ProfileSections
-          profile={profile}
+          /*
+           * FIX:
+           * editForm is used while editing so the newly
+           * uploaded photo appears immediately.
+           */
+          profile={displayedProfile}
           editForm={editForm}
           editing={editing}
 
@@ -175,9 +202,7 @@ function Profile() {
           loggingOut={loggingOut}
           navigate={navigate}
 
-          onPhotoChange={
-            handlePhotoChange
-          }
+          onPhotoChange={handlePhotoChange}
 
           onChangePhoto={() =>
             fileInputRef.current?.click()
@@ -208,21 +233,13 @@ function Profile() {
 
 
       <ProfileModals
-        showNotifications={
-          showNotifications
-        }
+        showNotifications={showNotifications}
 
-        showPrivacy={
-          showPrivacy
-        }
+        showPrivacy={showPrivacy}
 
-        showDelete={
-          showDelete
-        }
+        showDelete={showDelete}
 
-        notifications={
-          notifications
-        }
+        notifications={notifications}
 
         user={user}
 
@@ -238,17 +255,14 @@ function Profile() {
           setShowDelete(false)
         }
 
-        onNotificationChange={
-          updateNotification
-        }
+        onNotificationChange={updateNotification}
 
-        onDeleteAccount={
-          deleteAccount
-        }
+        onDeleteAccount={deleteAccount}
       />
 
     </div>
   )
 }
+
 
 export default Profile
