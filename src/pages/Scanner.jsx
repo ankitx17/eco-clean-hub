@@ -315,13 +315,13 @@ function Scanner() {
 
         {/* Top navigation */}
         <header className="mb-6 flex items-center justify-between gap-4">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-white hover:text-[#0b8f4d]"
-          >
-            <ArrowLeft size={18} />
-            Back to Home
-          </Link>
+   <Link
+  to="/dashboard"
+  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-white hover:text-[#0b8f4d]"
+>
+  <ArrowLeft size={18} />
+  Back to Dashboard
+</Link>
 
           <div className="flex items-center gap-2 rounded-full border border-green-100 bg-white px-4 py-2 text-sm font-bold text-[#0b8f4d] shadow-sm">
             <Sparkles size={16} />

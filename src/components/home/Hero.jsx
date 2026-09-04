@@ -16,17 +16,13 @@ import LoginModal from "./LoginModal"
 function Hero() {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const navigate = useNavigate()
-  const { isAuthenticated, loading } = useAuth()
+  const { user, loading } = useAuth()
 
-  const handleScanWaste = () => {
-    if (loading) return
+const handleScanWaste = () => {
+  if (loading) return
 
-    if (isAuthenticated) {
-      navigate("/scanner")
-    } else {
-      setShowLoginModal(true)
-    }
-  }
+  setShowLoginModal(true)
+}
 
   return (
     <section
@@ -38,7 +34,6 @@ function Hero() {
       <div className="pointer-events-none absolute -right-32 top-20 h-[500px] w-[500px] rounded-full bg-emerald-100/50 blur-3xl" />
 
       <div className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
-
         {/* LEFT */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -53,7 +48,6 @@ function Hero() {
 
           <h1 className="max-w-3xl text-5xl font-black leading-[1.03] tracking-[-0.04em] text-[#102119] sm:text-6xl lg:text-7xl">
             Turn waste into
-
             <span className="relative ml-3 inline-block text-[#0b8f4d]">
               impact.
             </span>
@@ -67,7 +61,6 @@ function Hero() {
 
           {/* Buttons */}
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-
             <button
               type="button"
               onClick={handleScanWaste}
@@ -85,12 +78,10 @@ function Hero() {
             <button className="rounded-2xl border border-slate-200 bg-white px-6 py-4 font-semibold text-slate-700 shadow-sm transition hover:border-green-200 hover:bg-green-50">
               Explore Platform
             </button>
-
           </div>
 
           {/* Trust points */}
           <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-500">
-
             <div className="flex items-center gap-2">
               <CheckCircle2 size={17} className="text-[#0b8f4d]" />
               AI-powered
@@ -105,7 +96,6 @@ function Hero() {
               <MapPin size={17} className="text-[#0b8f4d]" />
               GPS enabled
             </div>
-
           </div>
         </motion.div>
 
@@ -118,10 +108,8 @@ function Hero() {
         >
           {/* Main card */}
           <div className="relative overflow-hidden rounded-[2rem] border border-white bg-[#10251a] p-4 shadow-2xl shadow-green-950/20">
-
             {/* Fake camera */}
             <div className="relative h-[430px] overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-[#315e46] via-[#1c3d2b] to-[#091a10]">
-
               {/* Camera grid */}
               <div
                 className="absolute inset-0 opacity-20"
@@ -134,9 +122,7 @@ function Hero() {
 
               {/* Center scanner */}
               <div className="absolute inset-0 flex items-center justify-center">
-
                 <div className="relative h-56 w-56">
-
                   {/* Corner brackets */}
                   <div className="absolute left-0 top-0 h-10 w-10 border-l-2 border-t-2 border-green-300" />
                   <div className="absolute right-0 top-0 h-10 w-10 border-r-2 border-t-2 border-green-300" />
@@ -162,7 +148,6 @@ function Hero() {
                     }}
                     className="absolute left-2 right-2 top-5 h-[2px] bg-green-300 shadow-[0_0_18px_rgba(134,239,172,1)]"
                   />
-
                 </div>
               </div>
 
@@ -174,14 +159,11 @@ function Hero() {
 
               {/* Bottom result */}
               <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/10 bg-black/40 p-4 backdrop-blur-xl">
-
                 <div className="flex items-center justify-between">
-
                   <div>
                     <div className="text-xs text-green-200">
                       AI DETECTED
                     </div>
-
                     <div className="mt-1 text-xl font-bold text-white">
                       Dry Waste
                     </div>
@@ -195,9 +177,7 @@ function Hero() {
                       96.4%
                     </div>
                   </div>
-
                 </div>
-
               </div>
             </div>
 
@@ -252,10 +232,8 @@ function Hero() {
                 </div>
               </div>
             </motion.div>
-
           </div>
         </motion.div>
-
       </div>
 
       {/* Login Modal */}
@@ -267,5 +245,4 @@ function Hero() {
     </section>
   )
 }
-
 export default Hero
