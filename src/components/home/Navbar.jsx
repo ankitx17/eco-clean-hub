@@ -6,7 +6,7 @@ import {
   UserRound,
 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import useAuth from "../../hooks/useAuth"
 
 const PROFILE_KEY = "eco_clean_hub_profile"
@@ -16,6 +16,8 @@ function Navbar() {
   const [profile, setProfile] = useState(null)
 
   const { user, loading } = useAuth()
+  const location = useLocation()
+  const isHomePage = location.pathname === "/"
 
   const loadProfile = () => {
     if (!user) {
@@ -129,7 +131,8 @@ function Navbar() {
 
             <div>
               <div className="text-lg font-bold tracking-tight">
-                Eco<span className="text-[#0b8f4d]">
+                Eco
+                <span className="text-[#0b8f4d]">
                   Clean
                 </span>
               </div>
@@ -176,7 +179,27 @@ function Navbar() {
           {/* Desktop Actions */}
           <div className="hidden items-center gap-3 md:flex">
 
-            {isLoggedIn && !loading ? (
+            {/* Home page should always show Login + Get Started */}
+            {isHomePage || (!isLoggedIn && !loading) ? (
+              <>
+                {/* Login */}
+                <Link
+                  to="/login"
+                  className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-green-50"
+                >
+                  Login
+                </Link>
+
+                {/* Get Started */}
+                <Link
+                  to="/register"
+                  className="flex items-center gap-2 rounded-xl bg-[#0b8f4d] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-green-700/20 transition hover:-translate-y-0.5 hover:bg-[#087b42]"
+                >
+                  Get Started
+                  <ArrowRight size={16} />
+                </Link>
+              </>
+            ) : (
               <>
                 {/* Profile icon */}
                 <Link
@@ -206,33 +229,14 @@ function Navbar() {
                   )}
                 </Link>
               </>
-            ) : !loading ? (
-              <>
-                {/* Login */}
-                <Link
-                  to="/login"
-                  className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-green-50"
-                >
-                  Login
-                </Link>
-
-                {/* Get Started */}
-                <Link
-                  to="/register"
-                  className="flex items-center gap-2 rounded-xl bg-[#0b8f4d] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-green-700/20 transition hover:-translate-y-0.5 hover:bg-[#087b42]"
-                >
-                  Get Started
-                  <ArrowRight size={16} />
-                </Link>
-              </>
-            ) : null}
+            )}
 
           </div>
 
           {/* Mobile */}
           <div className="flex items-center gap-2 md:hidden">
 
-            {isLoggedIn && !loading && (
+            {!isHomePage && isLoggedIn && !loading && (
               <Link
                 to="/profile"
                 title="Profile"
@@ -308,7 +312,26 @@ function Navbar() {
                 Impact
               </a>
 
-              {isLoggedIn && !loading ? (
+              {/* Home page: Login + Get Started */}
+              {isHomePage || (!isLoggedIn && !loading) ? (
+                <>
+                  <Link
+                    to="/login"
+                    onClick={closeMenu}
+                    className="mt-2 rounded-xl border border-green-200 px-4 py-3 text-center text-sm font-semibold text-[#0b8f4d]"
+                  >
+                    Login
+                  </Link>
+
+                  <Link
+                    to="/register"
+                    onClick={closeMenu}
+                    className="rounded-xl bg-[#0b8f4d] px-4 py-3 text-center text-sm font-semibold text-white"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              ) : (
                 <Link
                   to="/profile"
                   onClick={closeMenu}
@@ -333,27 +356,10 @@ function Navbar() {
                     </div>
                   </div>
                 </Link>
-              ) : !loading ? (
-                <>
-                  <Link
-                    to="/login"
-                    onClick={closeMenu}
-                    className="mt-2 rounded-xl border border-green-200 px-4 py-3 text-center text-sm font-semibold text-[#0b8f4d]"
-                  >
-                    Login
-                  </Link>
-
-                  <Link
-                    to="/register"
-                    onClick={closeMenu}
-                    className="rounded-xl bg-[#0b8f4d] px-4 py-3 text-center text-sm font-semibold text-white"
-                  >
-                    Get Started
-                  </Link>
-                </>
-              ) : null}
+              )}
 
             </div>
+
           </div>
         )}
 

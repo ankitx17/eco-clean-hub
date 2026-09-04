@@ -33,8 +33,19 @@ let ai
 async function startServer() {
   const { GoogleGenAI } = await import("@google/genai")
 
+  const apiKey = process.env.GEMINI_API_KEY
+
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is missing.")
+  }
+
+  console.log(
+    `Gemini API key loaded (${apiKey.length} characters)`
+  )
+
   ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
+    apiKey: apiKey,
+    vertexai: false,
   })
 
   app.get("/api/health", (req, res) => {
@@ -45,6 +56,7 @@ async function startServer() {
     "/api/classify-waste",
     upload.single("image"),
     async (req, res) => {
+<<<<<<< Updated upstream
       const controller = new AbortController()
 
       const timeoutId = setTimeout(() => {
@@ -70,6 +82,19 @@ async function startServer() {
         const response = await ai.models.generateContent({
           model: "gemini-3.6-flash",
 
+=======
+      try {
+        if (!req.file) {
+          return res.status(400).json({
+            error: "No waste image provided.",
+          })
+        }
+
+        const base64Image = req.file.buffer.toString("base64")
+
+        const response = await ai.models.generateContent({
+       model: "gemini-3.6-flash",   
+>>>>>>> Stashed changes
           contents: [
             {
               inlineData: {
@@ -79,6 +104,7 @@ async function startServer() {
             },
             {
               text: `
+<<<<<<< Updated upstream
 You are Eco Clean Hub's waste classification AI.
 
 Your ONLY job is to identify whether the image contains a real physical waste item and classify that item.
@@ -191,14 +217,23 @@ Do not add any text outside JSON.
             maxOutputTokens: 220,
           },
         })
+=======
+You are a waste classification assistant for Eco Clean Hub.
+>>>>>>> Stashed changes
 
         const text = response.text?.trim()
 
+<<<<<<< Updated upstream
         if (!text) {
           throw new Error(
             "AI returned an empty response."
           )
         }
+=======
+Choose the most appropriate category from:
+
+Plastic, Paper, Glass, Metal, Organic, E-Waste, Textile, Other.
+>>>>>>> Stashed changes
 
         const result = JSON.parse(text)
 
@@ -208,6 +243,7 @@ Do not add any text outside JSON.
           ? result.category
           : "Non-Waste"
 
+<<<<<<< Updated upstream
         const type =
           typeof result.type === "string" &&
           result.type.trim()
@@ -272,6 +308,53 @@ Do not add any text outside JSON.
         })
       } finally {
         clearTimeout(timeoutId)
+=======
+Rules:
+- category must be one of the categories listed above.
+- confidence must be a number from 0 to 100.
+- type should briefly describe the disposal/recycling type.
+- guidance must contain 3 or 4 practical disposal instructions.
+- Do not use markdown.
+- Do not add explanations outside the JSON.
+              `,
+            },
+          ],
+        })
+
+        const text = response.text?.trim()
+
+        if (!text) {
+          throw new Error("AI returned an empty response.")
+        }
+
+        const cleanedText = text
+          .replace(/^```json\s*/i, "")
+          .replace(/^```\s*/i, "")
+          .replace(/\s*```$/i, "")
+          .trim()
+
+        const result = JSON.parse(cleanedText)
+
+        res.json({
+          category: result.category || "Other",
+          type:
+            result.type ||
+            "Please check local disposal guidance.",
+          confidence: Number(result.confidence) || 0,
+          guidance: Array.isArray(result.guidance)
+            ? result.guidance
+            : [
+                "Please check local waste disposal guidelines.",
+              ],
+        })
+      } catch (error) {
+        console.error("Waste classification error:", error)
+
+        res.status(500).json({
+          error: "Failed to classify the waste image.",
+          details: error.message,
+        })
+>>>>>>> Stashed changes
       }
     }
   )
