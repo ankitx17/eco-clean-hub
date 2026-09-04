@@ -10,11 +10,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/genai": "^2.21.0",
     "@tailwindcss/vite": "^4.3.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "firebase": "^12.18.0",
     "framer-motion": "^13.2.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.39.0",
+    "multer": "^2.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-leaflet": "^5.0.0",
