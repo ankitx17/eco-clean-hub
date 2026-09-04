@@ -1,0 +1,58 @@
+const mrfData = [
+  {
+    id: 1,
+    name: "Eco Recovery Centre",
+    address: "Greater Noida",
+    latitude: 28.3505,
+    longitude: 77.5525,
+    acceptedWaste: ["Plastic", "Paper", "Glass", "Metal"],
+    status: "Open",
+  },
+  {
+    id: 2,
+    name: "Green Waste Collection Centre",
+    address: "Knowledge Park",
+    latitude: 28.3450,
+    longitude: 77.5610,
+    acceptedWaste: ["Plastic", "Paper", "Cardboard"],
+    status: "Open",
+  },
+  {
+    id: 3,
+    name: "Clean City MRF Centre",
+    address: "Pari Chowk",
+    latitude: 28.4595,
+    longitude: 77.5360,
+    acceptedWaste: ["Plastic", "Glass", "Metal", "Paper"],
+    status: "Open",
+  },
+  {
+    id: 4,
+    name: "Green Earth Recycling Point",
+    address: "Surajpur",
+    latitude: 28.3900,
+    longitude: 77.5200,
+    acceptedWaste: ["Plastic", "Metal", "E-waste"],
+    status: "Open",
+  },
+  {
+    id: 5,
+    name: "Municipal Material Recovery Facility",
+    address: "Greater Noida West",
+    latitude: 28.6080,
+    longitude: 77.4250,
+    acceptedWaste: ["Paper", "Plastic", "Glass", "Metal"],
+    status: "Open",
+  },
+  {
+    id: 6,
+    name: "Community Recycling Centre",
+    address: "Noida Extension",
+    latitude: 28.5960,
+    longitude: 77.4300,
+    acceptedWaste: ["Plastic", "Paper", "Cardboard"],
+    status: "Open",
+  },
+]
+
+export default mrfData
