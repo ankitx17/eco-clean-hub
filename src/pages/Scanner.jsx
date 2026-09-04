@@ -124,13 +124,24 @@ function Scanner() {
       })
 
       streamRef.current = stream
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
-      }
-
       setMode("camera")
+
+      requestAnimationFrame(async () => {
+        const video = videoRef.current
+
+        if (!video || !streamRef.current) {
+          return
+        }
+
+        video.srcObject = streamRef.current
+
+        try {
+          await video.play()
+        } catch (playError) {
+          console.error("Camera playback error:", playError)
+          setError("Unable to start camera preview. Please try again.")
+        }
+      })
     } catch (cameraError) {
       console.error(cameraError)
 
