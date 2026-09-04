@@ -104,16 +104,108 @@ function Dashboard() {
                 Keep recycling and grow your environmental impact.
               </p>
             </div>
-
-            <Link
-              to="/scanner"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#176b45] px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#125a39] md:w-fit"
-            >
-              <Camera size={18} />
-              Scan Waste
-              <ArrowRight size={16} />
-            </Link>
+                                                       
           </div>
+        </section>
+
+                {/* MISSION & SCAN ACTIONS */}
+        <section className="mb-7 grid gap-4 sm:grid-cols-2 sm:mb-8">
+
+          {/* START A MISSION */}
+<Link
+  to="/missions"
+  className="group relative overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
+>
+  {/* Decorative background */}
+  <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
+
+  <div className="relative flex items-center justify-between">
+
+    {/* LEFT CONTENT */}
+    <div className="flex items-center gap-4">
+
+      {/* ICON */}
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#176b45] shadow-sm transition duration-300 group-hover:scale-105">
+        <Leaf size={26} />
+      </div>
+
+      {/* TEXT */}
+      <div>
+        <h3 className="text-lg font-extrabold text-white">
+          Start a Mission
+        </h3>
+
+        <p className="mt-1 text-sm text-green-50">
+          Take part in eco-friendly activities and earn Eco-Credits
+        </p>
+
+        <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+          Make an Impact
+          <ArrowRight size={13} />
+        </div>
+      </div>
+
+    </div>
+
+    {/* ARROW */}
+    <div className="ml-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-white group-hover:text-[#176b45]">
+      <ArrowRight
+        size={20}
+        className="transition group-hover:translate-x-1"
+      />
+    </div>
+
+  </div>
+</Link>
+
+
+{/* SCAN WASTE */}
+<Link
+  to="/scanner"
+  className="group relative overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
+>
+  {/* Decorative background */}
+  <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
+
+  <div className="relative flex items-center justify-between">
+
+    {/* LEFT CONTENT */}
+    <div className="flex items-center gap-4">
+
+      {/* ICON */}
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#176b45] shadow-sm transition duration-300 group-hover:scale-105">
+        <Camera size={26} />
+      </div>
+
+      {/* TEXT */}
+      <div>
+        <h3 className="text-lg font-extrabold text-white">
+          Scan Waste
+        </h3>
+
+        <p className="mt-1 text-sm text-green-50">
+          Identify your waste with AI
+        </p>
+
+        <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+          Scan & Identify
+          <ArrowRight size={13} />
+        </div>
+      </div>
+
+    </div>
+
+    {/* ARROW */}
+    <div className="ml-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-white group-hover:text-[#176b45]">
+      <ArrowRight
+        size={20}
+        className="transition group-hover:translate-x-1"
+      />
+    </div>
+
+  </div>
+</Link>
+
         </section>
 
         {/* STATS */}

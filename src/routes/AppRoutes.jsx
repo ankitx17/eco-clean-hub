@@ -6,6 +6,9 @@ const Home = lazy(() => import("../pages/Home"))
 const Login = lazy(() => import("../pages/Login"))
 const Register = lazy(() => import("../pages/Register"))
 const Dashboard = lazy(() => import("../pages/Dashboard"))
+const MissionSelection = lazy(() => import("../pages/MissionSelection"))
+const SelectTerrain = lazy(() => import("../pages/SelectTerrain"))
+const SubmitCleanup = lazy(() => import("../pages/SubmitCleanup"))
 const Scanner = lazy(() => import("../pages/Scanner"))
 const MRF = lazy(() => import("../pages/MRF"))
 const Verification = lazy(() => import("../pages/Verification"))
@@ -44,17 +47,30 @@ function AppRoutes() {
         {/* PROTECTED ROUTES */}
         <Route element={<ProtectedRoute allowedRoles={["citizen"]} />}>
           <Route path="/dashboard" element={<Dashboard />} />
+
+          <Route
+            path="/missions"
+            element={<MissionSelection />}
+          />
+
+          <Route path="/missions/terrain" element={<SelectTerrain />} />
+          <Route path="/cleanup" element={<SubmitCleanup />} />
+
           <Route path="/scanner" element={<Scanner />} />
           <Route path="/mrf" element={<MRF />} />
+
           <Route
             path="/verification"
             element={<Verification />}
           />
+
           <Route path="/rewards" element={<Rewards />} />
+
           <Route
             path="/leaderboard"
             element={<Leaderboard />}
           />
+
           <Route path="/activity" element={<Activity />} />
           <Route path="/profile" element={<Profile />} />
         </Route>
