@@ -4,31 +4,97 @@ import {
   ScanLine,
   MapPin,
   ClipboardCheck,
-  User,
   Menu,
   X,
 } from "lucide-react"
 
 import { Link } from "react-router-dom"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import useAuth from "../../hooks/useAuth"
+
+const PROFILE_KEY = "eco_clean_hub_profile"
 
 function DashboardHeader() {
   const { user, role } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [profile, setProfile] = useState(null)
+
+  const loadProfile = () => {
+    if (!user) {
+      setProfile(null)
+      return
+    }
+
+    const saved = localStorage.getItem(`${PROFILE_KEY}_${user.uid}`)
+
+    if (saved) {
+      try {
+        const data = JSON.parse(saved)
+
+        setProfile({
+          name:
+            data.name ||
+            user.displayName ||
+            user.email?.split("@")[0] ||
+            "User",
+          photo: data.photo || "",
+        })
+
+        return
+      } catch {
+        // Fall back to Firebase user information.
+      }
+    }
+
+    setProfile({
+      name:
+        user.displayName ||
+        user.email?.split("@")[0] ||
+        "User",
+      photo: user.photoURL || "",
+    })
+  }
+
+  useEffect(() => {
+    loadProfile()
+  }, [user])
+
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      loadProfile()
+    }
+
+    window.addEventListener(
+      "eco-clean-hub-profile-updated",
+      handleProfileUpdate
+    )
+
+    window.addEventListener("storage", handleProfileUpdate)
+
+    return () => {
+      window.removeEventListener(
+        "eco-clean-hub-profile-updated",
+        handleProfileUpdate
+      )
+
+      window.removeEventListener("storage", handleProfileUpdate)
+    }
+  }, [user])
 
   const userName =
+    profile?.name ||
     user?.displayName?.trim() ||
     user?.email?.split("@")[0] ||
     "User"
 
-  const userInitials = userName
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join("")
+  const userInitials =
+    userName
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0].toUpperCase())
+      .join("") || "U"
 
   const citizenLinks = [
     {
@@ -83,7 +149,6 @@ function DashboardHeader() {
           </div>
         </Link>
 
-
         {/* Desktop Navigation */}
         <nav className="hidden items-center gap-2 lg:flex">
           {navigationLinks.map((item) => {
@@ -102,32 +167,26 @@ function DashboardHeader() {
           })}
         </nav>
 
-
         {/* Right Side */}
         <div className="flex items-center gap-3">
 
+          {/* Profile Avatar */}
           <Link
             to="/profile"
-            className="hidden items-center gap-2 rounded-xl border border-[#dce9e1] bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-green-50 sm:flex"
+            title={`Profile - ${userName}`}
+            aria-label="Open Profile"
+            className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-green-100 bg-[#dcefe4] text-sm font-bold text-[#176b45] shadow-sm transition hover:border-green-300 hover:shadow-md"
           >
-            <User
-              size={17}
-              className="text-[#176b45]"
-            />
-
-            Profile
+            {profile?.photo ? (
+              <img
+                src={profile.photo}
+                alt={userName}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              userInitials
+            )}
           </Link>
-
-
-          {/* User Avatar */}
-          <Link
-            to="/profile"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#dcefe4] text-sm font-bold text-[#176b45]"
-            title={userName}
-          >
-            {userInitials || "U"}
-          </Link>
-
 
           {/* Mobile Menu Button */}
           <button
@@ -145,7 +204,6 @@ function DashboardHeader() {
 
         </div>
       </div>
-
 
       {/* Mobile Navigation */}
       {mobileOpen && (
@@ -195,9 +253,26 @@ function DashboardHeader() {
             <Link
               to="/profile"
               onClick={() => setMobileOpen(false)}
-              className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-green-50 hover:text-[#176b45]"
+              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-green-50 hover:text-[#176b45]"
             >
-              Profile
+              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-green-100 text-xs font-bold text-[#176b45]">
+                {profile?.photo ? (
+                  <img
+                    src={profile.photo}
+                    alt={userName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  userInitials
+                )}
+              </div>
+
+              <div>
+                <div>Profile</div>
+                <div className="text-xs font-normal text-slate-500">
+                  {userName}
+                </div>
+              </div>
             </Link>
 
           </nav>

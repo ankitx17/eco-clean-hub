@@ -13,8 +13,11 @@ import {
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { classifyWaste } from "../services/aiService"
+import useAuth from "../hooks/useAuth"
 
 function Scanner() {
+  const { user } = useAuth()
+
   const fileInputRef = useRef(null)
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
@@ -224,6 +227,67 @@ function Scanner() {
     startCamera()
   }
 
+  const saveScanActivity = (classification) => {
+    if (!user?.uid || !classification) {
+      return
+    }
+
+    try {
+      const activityKey = `eco_clean_hub_activity_${user.uid}`
+
+      const storedActivities = JSON.parse(
+        localStorage.getItem(activityKey) || "[]"
+      )
+
+      const existingActivities = Array.isArray(storedActivities)
+        ? storedActivities
+        : []
+
+      const newActivity = {
+        id: `scan_${Date.now()}_${Math.random()
+          .toString(36)
+          .slice(2, 8)}`,
+        userId: user.uid,
+        title: `${classification.category} waste scanned`,
+        category: classification.category,
+        type: classification.type,
+        confidence: Number(classification.confidence) || 0,
+        guidance: Array.isArray(classification.guidance)
+          ? classification.guidance
+          : [],
+        status: "Scanned",
+
+        // No fake impact values.
+        // These will be updated later when verification/reward
+        // actually records real environmental impact.
+        credits: 0,
+        weightKg: 0,
+        recycledKg: 0,
+        co2Kg: 0,
+        waterLiters: 0,
+        treesEquivalent: 0,
+
+        createdAt: new Date().toISOString(),
+      }
+
+      const updatedActivities = [
+        newActivity,
+        ...existingActivities,
+      ]
+
+      localStorage.setItem(
+        activityKey,
+        JSON.stringify(updatedActivities)
+      )
+
+      window.dispatchEvent(
+        new Event("eco-clean-hub-activity-updated")
+      )
+    } catch (storageError) {
+      console.error("Failed to save scan activity:", storageError)
+    }
+  }
+
   const analyzeWaste = async () => {
     if (!image?.file || analyzing) return
 
@@ -233,7 +297,10 @@ function Scanner() {
 
     try {
       const classification = await classifyWaste(image.file)
+
       setResult(classification)
+
+      saveScanActivity(classification)
     } catch (analysisError) {
       console.error(analysisError)
       setError("Unable to analyze this image. Please try again.")
