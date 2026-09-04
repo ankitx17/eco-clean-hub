@@ -5,11 +5,47 @@ import {
   Trophy,
   WalletCards,
 } from "lucide-react"
+import { useEffect, useState } from "react"
 
 function DashboardStats() {
+  const [credits, setCredits] = useState(0)
+  const [wasteRecycled, setWasteRecycled] = useState(0)
+  const [verifiedActions, setVerifiedActions] = useState(0)
+
+  useEffect(() => {
+    const loadStats = () => {
+      const savedCredits = localStorage.getItem("ecoCredits")
+      const savedWaste = localStorage.getItem("wasteRecycled")
+      const savedActions = localStorage.getItem("verifiedActions")
+
+      setCredits(
+        savedCredits !== null ? Number(savedCredits) : 0
+      )
+
+      setWasteRecycled(
+        savedWaste !== null ? Number(savedWaste) : 0
+      )
+
+      setVerifiedActions(
+        savedActions !== null ? Number(savedActions) : 0
+      )
+    }
+
+    loadStats()
+
+    window.addEventListener("storage", loadStats)
+    window.addEventListener("focus", loadStats)
+
+    return () => {
+      window.removeEventListener("storage", loadStats)
+      window.removeEventListener("focus", loadStats)
+    }
+  }, [])
+
   return (
     <section className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
+      {/* ECO-CREDITS */}
       <div className="rounded-2xl border border-[#dfeae3] bg-white p-5 shadow-sm">
 
         <div className="mb-5 flex items-start justify-between">
@@ -29,7 +65,7 @@ function DashboardStats() {
 
         <div className="mt-1 flex items-end gap-2">
           <h2 className="text-3xl font-bold">
-            1,240
+            {credits.toLocaleString()}
           </h2>
 
           <span className="mb-1 text-xs text-slate-400">
@@ -39,6 +75,7 @@ function DashboardStats() {
 
       </div>
 
+      {/* WASTE RECYCLED */}
       <div className="rounded-2xl border border-[#dfeae3] bg-white p-5 shadow-sm">
 
         <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
@@ -51,7 +88,7 @@ function DashboardStats() {
 
         <div className="mt-1 flex items-end gap-2">
           <h2 className="text-3xl font-bold">
-            24.6
+            {wasteRecycled.toFixed(1)}
           </h2>
 
           <span className="mb-1 text-xs text-slate-400">
@@ -60,11 +97,12 @@ function DashboardStats() {
         </div>
 
         <p className="mt-2 text-xs text-green-600">
-          ↑ 4.2 kg this month
+          ↑ Updated from your missions
         </p>
 
       </div>
 
+      {/* VERIFIED ACTIONS */}
       <div className="rounded-2xl border border-[#dfeae3] bg-white p-5 shadow-sm">
 
         <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
@@ -77,7 +115,7 @@ function DashboardStats() {
 
         <div className="mt-1 flex items-end gap-2">
           <h2 className="text-3xl font-bold">
-            18
+            {verifiedActions}
           </h2>
 
           <span className="mb-1 text-xs text-slate-400">
@@ -85,12 +123,13 @@ function DashboardStats() {
           </span>
         </div>
 
-        <p className="mt-2 text-xs text-slate-400">
-          3 actions this week
+        <p className="mt-2 text-xs text-green-600">
+          ↑ +1 with each verified mission
         </p>
 
       </div>
 
+      {/* COMMUNITY RANK */}
       <div className="rounded-2xl border border-[#dfeae3] bg-white p-5 shadow-sm">
 
         <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-orange-600">

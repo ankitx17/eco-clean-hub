@@ -8,8 +8,46 @@ import {
 } from "lucide-react"
 
 import { Link } from "react-router-dom"
+import { useEffect, useState } from "react"
 
 function EcoCreditsCard() {
+  const [credits, setCredits] = useState(1240)
+  const [missionSubmitted, setMissionSubmitted] = useState(false)
+
+  // Load saved credits
+  useEffect(() => {
+    const savedCredits = localStorage.getItem("ecoCredits")
+    const submitted = localStorage.getItem("missionSubmitted")
+
+    if (savedCredits) {
+      setCredits(Number(savedCredits))
+    }
+
+    if (submitted === "true") {
+      setMissionSubmitted(true)
+    }
+  }, [])
+
+  // Update when localStorage changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const savedCredits = localStorage.getItem("ecoCredits")
+      const submitted = localStorage.getItem("missionSubmitted")
+
+      if (savedCredits) {
+        setCredits(Number(savedCredits))
+      }
+
+      setMissionSubmitted(submitted === "true")
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+    }
+  }, [])
+
   const earnings = [
     {
       title: "Plastic bottle recycled",
@@ -28,6 +66,15 @@ function EcoCreditsCard() {
     },
   ]
 
+  // Show cleanup submission after successful submission
+  if (missionSubmitted) {
+    earnings.unshift({
+      title: "Cleanup mission submitted",
+      credits: 10,
+      time: "Just now",
+    })
+  }
+
   return (
     <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
 
@@ -43,8 +90,10 @@ function EcoCreditsCard() {
           <div className="flex items-start justify-between">
 
             <div>
+
               <div className="flex items-center gap-2 text-green-100">
                 <Coins size={18} />
+
                 <span className="text-sm font-medium">
                   Eco-Credits Wallet
                 </span>
@@ -55,14 +104,17 @@ function EcoCreditsCard() {
               </p>
 
               <div className="mt-1 flex items-end gap-2">
+
                 <h2 className="text-5xl font-bold tracking-tight">
-                  1,240
+                  {credits.toLocaleString()}
                 </h2>
 
                 <span className="mb-2 text-sm text-green-100">
                   credits
                 </span>
+
               </div>
+
             </div>
 
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
@@ -75,21 +127,25 @@ function EcoCreditsCard() {
           <div className="mt-8 flex items-center justify-between rounded-2xl bg-white/10 p-4">
 
             <div>
+
               <p className="text-xs text-green-100">
                 Earned this month
               </p>
 
               <div className="mt-1 flex items-center gap-2">
+
                 <TrendingUp size={15} />
 
                 <span className="text-lg font-bold">
-                  +320
+                  {missionSubmitted ? "+330" : "+320"}
                 </span>
 
                 <span className="text-xs text-green-100">
                   credits
                 </span>
+
               </div>
+
             </div>
 
             <div className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold">
@@ -128,6 +184,7 @@ function EcoCreditsCard() {
         <div className="flex items-center justify-between">
 
           <div>
+
             <h2 className="text-xl font-bold">
               Earning Summary
             </h2>
@@ -135,6 +192,7 @@ function EcoCreditsCard() {
             <p className="mt-1 text-sm text-slate-500">
               Your recent Eco-Credit earnings
             </p>
+
           </div>
 
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-[#176b45]">
@@ -145,9 +203,10 @@ function EcoCreditsCard() {
 
         <div className="mt-6 space-y-4">
 
-          {earnings.map((earning) => (
+          {earnings.map((earning, index) => (
+
             <div
-              key={earning.title}
+              key={`${earning.title}-${index}`}
               className="flex items-center gap-3 rounded-2xl border border-slate-100 p-3.5"
             >
 
@@ -168,6 +227,7 @@ function EcoCreditsCard() {
               </div>
 
               <div className="text-right">
+
                 <p className="text-sm font-bold text-[#176b45]">
                   +{earning.credits}
                 </p>
@@ -175,9 +235,11 @@ function EcoCreditsCard() {
                 <p className="text-[10px] text-slate-400">
                   credits
                 </p>
+
               </div>
 
             </div>
+
           ))}
 
         </div>
