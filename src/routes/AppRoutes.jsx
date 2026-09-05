@@ -16,6 +16,7 @@ const Rewards = lazy(() => import("../pages/Rewards"))
 const Leaderboard = lazy(() => import("../pages/Leaderboard"))
 const Activity = lazy(() => import("../pages/Activity"))
 const Profile = lazy(() => import("../pages/Profile"))
+const Donation = lazy(() => import("../pages/Donation"))
 const NotFound = lazy(() => import("../pages/NotFound"))
 
 function PageLoader() {
@@ -53,30 +54,62 @@ function AppRoutes() {
             element={<MissionSelection />}
           />
 
-          <Route path="/missions/terrain" element={<SelectTerrain />} />
-          <Route path="/cleanup" element={<SubmitCleanup />} />
+          <Route
+            path="/missions/terrain"
+            element={<SelectTerrain />}
+          />
 
-          <Route path="/scanner" element={<Scanner />} />
-          <Route path="/mrf" element={<MRF />} />
+          <Route
+            path="/cleanup"
+            element={<SubmitCleanup />}
+          />
+
+          <Route
+            path="/scanner"
+            element={<Scanner />}
+          />
+
+          <Route
+            path="/mrf"
+            element={<MRF />}
+          />
 
           <Route
             path="/verification"
             element={<Verification />}
           />
 
-          <Route path="/rewards" element={<Rewards />} />
+          <Route
+            path="/rewards"
+            element={<Rewards />}
+          />
 
           <Route
             path="/leaderboard"
             element={<Leaderboard />}
           />
 
-          <Route path="/activity" element={<Activity />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route
+            path="/activity"
+            element={<Activity />}
+          />
+
+          <Route
+            path="/profile"
+            element={<Profile />}
+          />
+
+          <Route
+            path="/donation"
+            element={<Donation />}
+          />
         </Route>
 
         {/* 404 */}
-        <Route path="*" element={<NotFound />} />
+        <Route
+          path="*"
+          element={<NotFound />}
+        />
 
       </Routes>
     </Suspense>
