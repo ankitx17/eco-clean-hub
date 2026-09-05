@@ -5,6 +5,7 @@ import ProtectedRoute from "../components/common/ProtectedRoute"
 const Home = lazy(() => import("../pages/Home"))
 const Login = lazy(() => import("../pages/Login"))
 const Register = lazy(() => import("../pages/Register"))
+
 const Dashboard = lazy(() => import("../pages/Dashboard"))
 const MissionSelection = lazy(() => import("../pages/MissionSelection"))
 const SelectTerrain = lazy(() => import("../pages/SelectTerrain"))
@@ -18,6 +19,11 @@ const Activity = lazy(() => import("../pages/Activity"))
 const Profile = lazy(() => import("../pages/Profile"))
 const Donation = lazy(() => import("../pages/Donation"))
 const FundingRequest = lazy(() => import("../pages/FundingRequest"))
+
+const AdminFundingRequests = lazy(
+  () => import("../pages/AdminFundingRequests")
+)
+
 const NotFound = lazy(() => import("../pages/NotFound"))
 
 function PageLoader() {
@@ -40,6 +46,7 @@ function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
+
         {/* PUBLIC ROUTES */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -119,11 +126,24 @@ function AppRoutes() {
           />
         </Route>
 
+        {/* PROTECTED ADMIN ROUTES */}
+        <Route
+          element={
+            <ProtectedRoute allowedRoles={["admin"]} />
+          }
+        >
+          <Route
+            path="/admin/funding-requests"
+            element={<AdminFundingRequests />}
+          />
+        </Route>
+
         {/* 404 */}
         <Route
           path="*"
           element={<NotFound />}
         />
+
       </Routes>
     </Suspense>
   )
