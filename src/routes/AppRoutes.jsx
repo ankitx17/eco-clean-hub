@@ -5,66 +5,115 @@ import ProtectedRoute from "../components/common/ProtectedRoute"
 const Home = lazy(() => import("../pages/Home"))
 const Login = lazy(() => import("../pages/Login"))
 const Register = lazy(() => import("../pages/Register"))
+const VendorRegistration = lazy(
+  () => import("../pages/VendorRegistration")
+)
 
 const Dashboard = lazy(() => import("../pages/Dashboard"))
-const RedeemRewards = lazy(() => import("../pages/RedeemRewards"))
-const MissionSelection = lazy(() => import("../pages/MissionSelection"))
-const SelectTerrain = lazy(() => import("../pages/SelectTerrain"))
-const SubmitCleanup = lazy(() => import("../pages/SubmitCleanup"))
+const RedeemRewards = lazy(
+  () => import("../pages/RedeemRewards")
+)
+const MissionSelection = lazy(
+  () => import("../pages/MissionSelection")
+)
+const SelectTerrain = lazy(
+  () => import("../pages/SelectTerrain")
+)
+const SubmitCleanup = lazy(
+  () => import("../pages/SubmitCleanup")
+)
 const Scanner = lazy(() => import("../pages/Scanner"))
 const MRF = lazy(() => import("../pages/MRF"))
-const Verification = lazy(() => import("../pages/Verification"))
+const MRFRoute = lazy(
+  () => import("../pages/MRFRoute")
+)
+const Verification = lazy(
+  () => import("../pages/Verification")
+)
 const Rewards = lazy(() => import("../pages/Rewards"))
-const Leaderboard = lazy(() => import("../pages/Leaderboard"))
+const Leaderboard = lazy(
+  () => import("../pages/Leaderboard")
+)
 const Activity = lazy(() => import("../pages/Activity"))
 const Profile = lazy(() => import("../pages/Profile"))
 const Donation = lazy(() => import("../pages/Donation"))
-const FundingRequest = lazy(() => import("../pages/FundingRequest"))
-
+const FundingRequest = lazy(
+  () => import("../pages/FundingRequest")
+)
 const AdminFundingRequests = lazy(
   () => import("../pages/AdminFundingRequests")
 )
-
 const NotFound = lazy(() => import("../pages/NotFound"))
 
-function PageLoader() {
+function RouteLoader() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f6faf7]">
-      <div className="flex flex-col items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#176b45] text-white">
-          <span className="text-xl">🌿</span>
-        </div>
-
-        <p className="text-sm font-medium text-slate-500">
-          Loading Eco Clean Hub...
-        </p>
-      </div>
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#176b45] border-t-transparent" />
     </div>
   )
 }
 
 function AppRoutes() {
   return (
-    <Suspense fallback={<PageLoader />}>
+    <Suspense fallback={<RouteLoader />}>
       <Routes>
+        {/* =====================================================
+            PUBLIC ROUTES
+           ===================================================== */}
 
-        {/* PUBLIC ROUTES */}
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-
-        {/* PROTECTED CITIZEN ROUTES */}
         <Route
-          element={
-            <ProtectedRoute allowedRoles={["citizen"]} />
-          }
-        >
+          path="/"
+          element={<Home />}
+        />
+
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
+        {/* Vendor Registration */}
+        <Route
+          path="/vendor-register"
+          element={<VendorRegistration />}
+        />
+
+        {/* =====================================================
+            PUBLIC MRF ROUTES
+
+            Temporary for vendor testing.
+            Later admin system ke according
+            protection/role control add karenge.
+           ===================================================== */}
+
+        <Route
+          path="/mrf"
+          element={<MRF />}
+        />
+
+     <Route
+  path="/mrf/route/:mrfId"
+  element={<MRFRoute />}
+/>
+
+        {/* =====================================================
+            CITIZEN PROTECTED ROUTES
+           ===================================================== */}
+
+        <Route element={<ProtectedRoute />}>
           <Route
             path="/dashboard"
             element={<Dashboard />}
           />
 
-          <Route path="/redeem" element={<RedeemRewards />} />
+          <Route
+            path="/redeem"
+            element={<RedeemRewards />}
+          />
 
           <Route
             path="/missions"
@@ -84,11 +133,6 @@ function AppRoutes() {
           <Route
             path="/scanner"
             element={<Scanner />}
-          />
-
-          <Route
-            path="/mrf"
-            element={<MRF />}
           />
 
           <Route
@@ -116,20 +160,21 @@ function AppRoutes() {
             element={<Profile />}
           />
 
-          {/* DONATION */}
           <Route
             path="/donation"
             element={<Donation />}
           />
 
-          {/* FUNDING REQUEST */}
           <Route
             path="/funding-request"
             element={<FundingRequest />}
           />
         </Route>
 
-        {/* PROTECTED ADMIN ROUTES */}
+        {/* =====================================================
+            ADMIN ROUTES
+           ===================================================== */}
+
         <Route
           element={
             <ProtectedRoute allowedRoles={["admin"]} />
@@ -141,12 +186,14 @@ function AppRoutes() {
           />
         </Route>
 
-        {/* 404 */}
+        {/* =====================================================
+            NOT FOUND
+           ===================================================== */}
+
         <Route
           path="*"
           element={<NotFound />}
         />
-
       </Routes>
     </Suspense>
   )

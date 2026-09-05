@@ -1,6 +1,5 @@
 import {
   ArrowRight,
-  Camera,
   CheckCircle2,
   MapPin,
   Sparkles,
@@ -8,21 +7,14 @@ import {
   ShieldCheck,
 } from "lucide-react"
 import { motion } from "framer-motion"
-import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import useAuth from "../../hooks/useAuth"
-import LoginModal from "./LoginModal"
 
 function Hero() {
-  const [showLoginModal, setShowLoginModal] = useState(false)
   const navigate = useNavigate()
-  const { user, loading } = useAuth()
 
-const handleScanWaste = () => {
-  if (loading) return
-
-  setShowLoginModal(true)
-}
+  const handleRegisterAsVendor = () => {
+    navigate("/vendor-register")
+  }
 
   return (
     <section
@@ -31,6 +23,7 @@ const handleScanWaste = () => {
     >
       {/* Background decoration */}
       <div className="pointer-events-none absolute -left-32 top-40 h-96 w-96 rounded-full bg-green-200/40 blur-3xl" />
+
       <div className="pointer-events-none absolute -right-32 top-20 h-[500px] w-[500px] rounded-full bg-emerald-100/50 blur-3xl" />
 
       <div className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
@@ -59,24 +52,19 @@ const handleScanWaste = () => {
             smartphone.
           </p>
 
-          {/* Buttons */}
+          {/* Vendor Button */}
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
-              onClick={handleScanWaste}
-              disabled={loading}
-              className="group flex items-center justify-center gap-2 rounded-2xl bg-[#0b8f4d] px-6 py-4 font-semibold text-white shadow-xl shadow-green-800/20 transition hover:-translate-y-1 hover:bg-[#087b42] disabled:cursor-not-allowed disabled:opacity-70"
+              onClick={handleRegisterAsVendor}
+              className="group flex items-center justify-center gap-2 rounded-2xl bg-[#0b8f4d] px-6 py-4 font-semibold text-white shadow-xl shadow-green-800/20 transition hover:-translate-y-1 hover:bg-[#087b42]"
             >
-              <Camera size={19} />
-              Scan Waste
+              Register as Vendor
+
               <ArrowRight
                 size={17}
                 className="transition group-hover:translate-x-1"
               />
-            </button>
-
-            <button className="rounded-2xl border border-slate-200 bg-white px-6 py-4 font-semibold text-slate-700 shadow-sm transition hover:border-green-200 hover:bg-green-50">
-              Explore Platform
             </button>
           </div>
 
@@ -125,8 +113,11 @@ const handleScanWaste = () => {
                 <div className="relative h-56 w-56">
                   {/* Corner brackets */}
                   <div className="absolute left-0 top-0 h-10 w-10 border-l-2 border-t-2 border-green-300" />
+
                   <div className="absolute right-0 top-0 h-10 w-10 border-r-2 border-t-2 border-green-300" />
+
                   <div className="absolute bottom-0 left-0 h-10 w-10 border-b-2 border-l-2 border-green-300" />
+
                   <div className="absolute bottom-0 right-0 h-10 w-10 border-b-2 border-r-2 border-green-300" />
 
                   {/* Recycle icon */}
@@ -164,6 +155,7 @@ const handleScanWaste = () => {
                     <div className="text-xs text-green-200">
                       AI DETECTED
                     </div>
+
                     <div className="mt-1 text-xl font-bold text-white">
                       Dry Waste
                     </div>
@@ -173,6 +165,7 @@ const handleScanWaste = () => {
                     <div className="text-[10px] text-green-200">
                       CONFIDENCE
                     </div>
+
                     <div className="font-bold text-green-300">
                       96.4%
                     </div>
@@ -181,7 +174,7 @@ const handleScanWaste = () => {
               </div>
             </div>
 
-            {/* Floating card */}
+            {/* Floating MRF card */}
             <motion.div
               animate={{ y: [0, -8, 0] }}
               transition={{
@@ -200,6 +193,7 @@ const handleScanWaste = () => {
                   <div className="text-xs text-slate-500">
                     Nearest MRF
                   </div>
+
                   <div className="font-bold text-slate-800">
                     1.8 km away
                   </div>
@@ -226,6 +220,7 @@ const handleScanWaste = () => {
                   <div className="text-xs text-slate-500">
                     Eco-Credits
                   </div>
+
                   <div className="font-bold text-[#0b8f4d]">
                     +50 earned
                   </div>
@@ -235,14 +230,8 @@ const handleScanWaste = () => {
           </div>
         </motion.div>
       </div>
-
-      {/* Login Modal */}
-      {showLoginModal && (
-        <LoginModal
-          onClose={() => setShowLoginModal(false)}
-        />
-      )}
     </section>
   )
 }
+
 export default Hero

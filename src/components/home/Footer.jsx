@@ -190,19 +190,7 @@ function Footer() {
             © 2026 Eco Clean Hub. Built for a cleaner tomorrow.
           </p>
 
-          <div className="flex items-center gap-2">
-            <span>
-              SMART INDIA HACKATHON 2026
-            </span>
-
-            <span className="text-slate-300">
-              •
-            </span>
-
-            <span>
-              Team Ninja
-            </span>
-          </div>
+         
 
         </div>
 
