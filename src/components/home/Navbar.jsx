@@ -6,7 +6,7 @@ import {
   UserRound,
 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { Link, useLocation } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import useAuth from "../../hooks/useAuth"
 
 const PROFILE_KEY = "eco_clean_hub_profile"
@@ -17,6 +17,8 @@ function Navbar() {
 
   const { user, loading } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
+
   const isHomePage = location.pathname === "/"
 
   const loadProfile = () => {
@@ -93,6 +95,21 @@ function Navbar() {
     setMenuOpen(false)
   }
 
+  // Home button: go to home page and scroll to top
+  const handleHomeClick = (event) => {
+    event.preventDefault()
+    closeMenu()
+
+    if (isHomePage) {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      })
+    } else {
+      navigate("/")
+    }
+  }
+
   const displayName =
     profile?.name ||
     user?.displayName ||
@@ -120,6 +137,7 @@ function Navbar() {
           {/* Logo */}
           <Link
             to="/"
+            onClick={handleHomeClick}
             className="flex items-center gap-3"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0b8f4d] text-white shadow-lg shadow-green-700/20">
@@ -146,8 +164,10 @@ function Navbar() {
           {/* Desktop Links */}
           <div className="hidden items-center gap-8 md:flex">
 
+            {/* HOME */}
             <Link
               to="/"
+              onClick={handleHomeClick}
               className="text-sm font-medium text-slate-700 transition hover:text-[#0b8f4d]"
             >
               Home
@@ -280,9 +300,10 @@ function Navbar() {
 
             <div className="flex flex-col gap-2">
 
+              {/* HOME */}
               <Link
                 to="/"
-                onClick={closeMenu}
+                onClick={handleHomeClick}
                 className="rounded-xl px-4 py-3 text-sm font-medium hover:bg-green-50"
               >
                 Home
