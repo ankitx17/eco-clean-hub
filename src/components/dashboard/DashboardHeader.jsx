@@ -6,6 +6,7 @@ import {
   ClipboardCheck,
   Menu,
   X,
+  Gift,
 } from "lucide-react"
 
 import { Link } from "react-router-dom"
@@ -116,6 +117,11 @@ function DashboardHeader() {
       label: "Rewards",
       path: "/rewards",
       icon: WalletCards,
+    },
+    {
+      label: "Donation",
+      path: "/donation",
+      icon: Gift,
     },
   ]
 

@@ -17,6 +17,7 @@ const Leaderboard = lazy(() => import("../pages/Leaderboard"))
 const Activity = lazy(() => import("../pages/Activity"))
 const Profile = lazy(() => import("../pages/Profile"))
 const Donation = lazy(() => import("../pages/Donation"))
+const FundingRequest = lazy(() => import("../pages/FundingRequest"))
 const NotFound = lazy(() => import("../pages/NotFound"))
 
 function PageLoader() {
@@ -39,15 +40,21 @@ function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-
         {/* PUBLIC ROUTES */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* PROTECTED ROUTES */}
-        <Route element={<ProtectedRoute allowedRoles={["citizen"]} />}>
-          <Route path="/dashboard" element={<Dashboard />} />
+        {/* PROTECTED CITIZEN ROUTES */}
+        <Route
+          element={
+            <ProtectedRoute allowedRoles={["citizen"]} />
+          }
+        >
+          <Route
+            path="/dashboard"
+            element={<Dashboard />}
+          />
 
           <Route
             path="/missions"
@@ -99,9 +106,16 @@ function AppRoutes() {
             element={<Profile />}
           />
 
+          {/* DONATION */}
           <Route
             path="/donation"
             element={<Donation />}
+          />
+
+          {/* FUNDING REQUEST */}
+          <Route
+            path="/funding-request"
+            element={<FundingRequest />}
           />
         </Route>
 
@@ -110,7 +124,6 @@ function AppRoutes() {
           path="*"
           element={<NotFound />}
         />
-
       </Routes>
     </Suspense>
   )

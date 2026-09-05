@@ -3,6 +3,8 @@ import {
   Camera,
   CheckCircle2,
   ChevronRight,
+  FileText,
+  Gift,
   Leaf,
   MapPin,
   Recycle,
@@ -104,108 +106,172 @@ function Dashboard() {
                 Keep recycling and grow your environmental impact.
               </p>
             </div>
-                                                       
           </div>
         </section>
 
-                {/* MISSION & SCAN ACTIONS */}
+        {/* MISSION, SCAN, DONATION & FUNDING ACTIONS */}
         <section className="mb-7 grid gap-4 sm:grid-cols-2 sm:mb-8">
 
           {/* START A MISSION */}
-<Link
-  to="/missions"
-  className="group relative overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
->
-  {/* Decorative background */}
-  <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
+          <Link
+            to="/missions"
+            className="group relative overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
+          >
+            <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
 
-  <div className="relative flex items-center justify-between">
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#176b45] shadow-sm transition duration-300 group-hover:scale-105">
+                  <Leaf size={26} />
+                </div>
 
-    {/* LEFT CONTENT */}
-    <div className="flex items-center gap-4">
+                <div>
+                  <h3 className="text-lg font-extrabold text-white">
+                    Start a Mission
+                  </h3>
 
-      {/* ICON */}
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#176b45] shadow-sm transition duration-300 group-hover:scale-105">
-        <Leaf size={26} />
-      </div>
+                  <p className="mt-1 text-sm text-green-50">
+                    Take part in eco-friendly activities and earn Eco-Credits
+                  </p>
 
-      {/* TEXT */}
-      <div>
-        <h3 className="text-lg font-extrabold text-white">
-          Start a Mission
-        </h3>
+                  <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+                    Make an Impact
+                    <ArrowRight size={13} />
+                  </div>
+                </div>
+              </div>
 
-        <p className="mt-1 text-sm text-green-50">
-          Take part in eco-friendly activities and earn Eco-Credits
-        </p>
+              <div className="ml-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-white group-hover:text-[#176b45]">
+                <ArrowRight
+                  size={20}
+                  className="transition group-hover:translate-x-1"
+                />
+              </div>
+            </div>
+          </Link>
 
-        <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
-          Make an Impact
-          <ArrowRight size={13} />
-        </div>
-      </div>
+          {/* SCAN WASTE */}
+          <Link
+            to="/scanner"
+            className="group relative overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
+          >
+            <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
 
-    </div>
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#176b45] shadow-sm transition duration-300 group-hover:scale-105">
+                  <Camera size={26} />
+                </div>
 
-    {/* ARROW */}
-    <div className="ml-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-white group-hover:text-[#176b45]">
-      <ArrowRight
-        size={20}
-        className="transition group-hover:translate-x-1"
-      />
-    </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-white">
+                    Scan Waste
+                  </h3>
 
-  </div>
-</Link>
+                  <p className="mt-1 text-sm text-green-50">
+                    Identify your waste with AI
+                  </p>
 
+                  <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+                    Scan & Identify
+                    <ArrowRight size={13} />
+                  </div>
+                </div>
+              </div>
 
-{/* SCAN WASTE */}
-<Link
-  to="/scanner"
-  className="group relative overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
->
-  {/* Decorative background */}
-  <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
+              <div className="ml-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-white group-hover:text-[#176b45]">
+                <ArrowRight
+                  size={20}
+                  className="transition group-hover:translate-x-1"
+                />
+              </div>
+            </div>
+          </Link>
 
-  <div className="relative flex items-center justify-between">
+          {/* DONATION & GREEN FUND */}
+          <Link
+            to="/donation"
+            className="group relative overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
+          >
+            <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
 
-    {/* LEFT CONTENT */}
-    <div className="flex items-center gap-4">
+            <div className="pointer-events-none absolute -bottom-12 -left-8 h-28 w-28 rounded-full bg-white/10" />
 
-      {/* ICON */}
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#176b45] shadow-sm transition duration-300 group-hover:scale-105">
-        <Camera size={26} />
-      </div>
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#176b45] shadow-sm transition duration-300 group-hover:scale-105">
+                  <Gift size={26} />
+                </div>
 
-      {/* TEXT */}
-      <div>
-        <h3 className="text-lg font-extrabold text-white">
-          Scan Waste
-        </h3>
+                <div>
+                  <h3 className="text-lg font-extrabold text-white">
+                    Donation & Green Fund
+                  </h3>
 
-        <p className="mt-1 text-sm text-green-50">
-          Identify your waste with AI
-        </p>
+                  <p className="mt-1 text-sm text-green-50">
+                    Support trees, cleanups and greener communities
+                  </p>
 
-        <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
-          Scan & Identify
-          <ArrowRight size={13} />
-        </div>
-      </div>
+                  <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+                    Make a Contribution
+                    <ArrowRight size={13} />
+                  </div>
+                </div>
+              </div>
 
-    </div>
+              <div className="ml-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-white group-hover:text-[#176b45]">
+                <ArrowRight
+                  size={20}
+                  className="transition group-hover:translate-x-1"
+                />
+              </div>
+            </div>
+          </Link>
 
-    {/* ARROW */}
-    <div className="ml-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-white group-hover:text-[#176b45]">
-      <ArrowRight
-        size={20}
-        className="transition group-hover:translate-x-1"
-      />
-    </div>
+          {/* REQUEST GREEN FUND */}
+          <Link
+            to="/funding-request"
+            className="group relative overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#176b45] via-[#138a50] to-[#0d5d3b] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
+          >
+            <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10" />
 
-  </div>
-</Link>
+            <div className="pointer-events-none absolute -bottom-12 -left-8 h-28 w-28 rounded-full bg-white/10" />
 
+            <div className="relative flex items-center justify-between">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#176b45] shadow-sm transition duration-300 group-hover:scale-105">
+                  <FileText size={26} />
+                </div>
+
+                <div className="min-w-0">
+                  <div className="mb-1 inline-flex items-center rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-green-50">
+                    Green Fund
+                  </div>
+
+                  <h3 className="text-lg font-extrabold text-white">
+                    Request Green Fund
+                  </h3>
+
+                  <p className="mt-1 text-sm text-green-50">
+                    Apply for funding for cleanup, plantation, recycling and
+                    other environmental projects.
+                  </p>
+
+                  <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+                    Submit Funding Request
+                    <ArrowRight size={13} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="ml-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-white group-hover:text-[#176b45]">
+                <ArrowRight
+                  size={20}
+                  className="transition group-hover:translate-x-1"
+                />
+              </div>
+            </div>
+          </Link>
         </section>
 
         {/* STATS */}
