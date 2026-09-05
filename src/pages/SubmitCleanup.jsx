@@ -17,10 +17,13 @@ import { useLocation, useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
 
 import { verifyCleanupPhotos } from "../services/cleanupVerificationService"
+import useAuth from "../hooks/useAuth"
+import { awardCleanupCredits } from "../services/creditService"
 
 function SubmitCleanup() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { user } = useAuth()
 
   const mode = location.state?.mode || "SOLO"
   const terrain = location.state?.terrain || "Other"
@@ -41,10 +44,7 @@ function SubmitCleanup() {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-
-  // --------------------------------------------------
-  // LOAD SAVED LOCATION
-  // --------------------------------------------------
+  const [earnedCredits, setEarnedCredits] = useState(0)
 
   useEffect(() => {
     const savedLocation =
@@ -55,9 +55,10 @@ function SubmitCleanup() {
     }
   }, [])
 
-  // --------------------------------------------------
-  // IMAGE HANDLER
-  // --------------------------------------------------
+  const resetVerification = () => {
+    setVerificationStatus("idle")
+    setVerificationScore(null)
+  }
 
   const handleImageChange = (event, setter) => {
     const file = event.target.files?.[0]
@@ -66,6 +67,7 @@ function SubmitCleanup() {
 
     if (!file.type.startsWith("image/")) {
       alert("Please upload a valid image file.")
+      event.target.value = ""
       return
     }
 
@@ -73,6 +75,7 @@ function SubmitCleanup() {
 
     if (file.size > maxSize) {
       alert("Image size should be less than 5MB.")
+      event.target.value = ""
       return
     }
 
@@ -82,6 +85,14 @@ function SubmitCleanup() {
       file,
       preview: previewUrl,
     })
+
+    /*
+     * If any photo changes after verification,
+     * previous AI verification is no longer valid.
+     */
+    resetVerification()
+
+    event.target.value = ""
   }
 
   const removeImage = (image, setter) => {
@@ -90,11 +101,12 @@ function SubmitCleanup() {
     }
 
     setter(null)
-  }
 
-  // --------------------------------------------------
-  // GET LOCATION NAME
-  // --------------------------------------------------
+    /*
+     * Removing a photo invalidates previous verification.
+     */
+    resetVerification()
+  }
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -158,12 +170,12 @@ function SubmitCleanup() {
             error,
           )
 
-          // Fallback to coordinates if location name fails
-          const fallbackLocation = `${latitude.toFixed(
-            6,
-          )}, ${longitude.toFixed(6)}`
+          const fallbackLocation =
+            `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
 
-          setCurrentLocation(fallbackLocation)
+          setCurrentLocation(
+            fallbackLocation,
+          )
 
           localStorage.setItem(
             "cleanupLocation",
@@ -203,10 +215,6 @@ function SubmitCleanup() {
     )
   }
 
-  // --------------------------------------------------
-  // AI CLEANUP VERIFICATION
-  // --------------------------------------------------
-
   const handleVerify = async () => {
     if (
       !beforePhoto ||
@@ -216,6 +224,7 @@ function SubmitCleanup() {
       alert(
         "Please upload Before, After and Action photos first.",
       )
+
       return
     }
 
@@ -242,8 +251,13 @@ function SubmitCleanup() {
         return
       }
 
-      setVerificationScore(result.score)
-      setVerificationStatus("verified")
+      setVerificationScore(
+        result.score,
+      )
+
+      setVerificationStatus(
+        "verified",
+      )
     } catch (error) {
       console.error(
         "Cleanup verification failed:",
@@ -260,18 +274,28 @@ function SubmitCleanup() {
     }
   }
 
-  // --------------------------------------------------
-  // SUBMIT CLEANUP
-  // --------------------------------------------------
-
   const handleSubmit = () => {
+    if (!user?.uid) {
+      alert(
+        "Please login before submitting a cleanup.",
+      )
+
+      return
+    }
+
     if (!wasteKg || Number(wasteKg) <= 0) {
-      alert("Please enter the waste weight in kg.")
+      alert(
+        "Please enter the waste weight in kg.",
+      )
+
       return
     }
 
     if (!bags || Number(bags) <= 0) {
-      alert("Please enter the number of bags.")
+      alert(
+        "Please enter the number of bags.",
+      )
+
       return
     }
 
@@ -283,322 +307,465 @@ function SubmitCleanup() {
       alert(
         "Please upload Before, After and Action photos.",
       )
+
       return
     }
 
-    if (verificationStatus !== "verified") {
-      alert("Please verify your cleanup photos first.")
+    /*
+     * Cleanup cannot be submitted without
+     * successful AI verification.
+     */
+    if (
+      verificationStatus !==
+      "verified"
+    ) {
+      alert(
+        "Please verify your cleanup photos first.",
+      )
+
       return
     }
 
     setIsSubmitting(true)
 
-    // Small delay for prototype submit experience
     setTimeout(() => {
-      // ---------------------------------------------
-      // ECO CREDITS
-      // ---------------------------------------------
+      try {
+        const submittedWaste =
+          Number(wasteKg)
 
-      const currentCredits =
-        Number(
-          localStorage.getItem("ecoCredits"),
-        ) || 0
+        const finalLocation =
+          currentLocation ||
+          savedManualLocation ||
+          "Location not provided"
 
-      const newCredits =
-        currentCredits + 10
+        const submissionId =
+          `cleanup_${Date.now()}_${Math.random()
+            .toString(36)
+            .slice(2, 8)}`
 
-      localStorage.setItem(
-        "ecoCredits",
-        newCredits.toString(),
-      )
+        /*
+         * IMPORTANT:
+         *
+         * Credits are awarded ONLY here,
+         * after AI verification has succeeded.
+         *
+         * Scanner.jsx does NOT award credits.
+         */
+        const creditResult =
+          awardCleanupCredits({
+            userId: user.uid,
+            submissionId,
+          })
 
-      // ---------------------------------------------
-      // WASTE RECYCLED
-      // ---------------------------------------------
+        const reward =
+          Number(
+            creditResult?.credits,
+          ) || 0
 
-      const currentWaste =
-        Number(
-          localStorage.getItem(
-            "wasteRecycled",
-          ),
-        ) || 0
+        if (reward <= 0) {
+          throw new Error(
+            "Unable to add cleanup reward to your Eco-Credit wallet.",
+          )
+        }
 
-      const submittedWaste =
-        Number(wasteKg)
-
-      const newWaste =
-        currentWaste + submittedWaste
-
-      localStorage.setItem(
-        "wasteRecycled",
-        newWaste.toString(),
-      )
-
-      // ---------------------------------------------
-      // VERIFIED ACTIONS
-      // ---------------------------------------------
-
-      const currentActions =
-        Number(
-          localStorage.getItem(
-            "verifiedActions",
-          ),
-        ) || 0
-
-      const newActions =
-        currentActions + 1
-
-      localStorage.setItem(
-        "verifiedActions",
-        newActions.toString(),
-      )
-
-      // ---------------------------------------------
-      // SAVE MISSION DATA
-      // ---------------------------------------------
-
-      const finalLocation =
-        currentLocation ||
-        savedManualLocation ||
-        "Location not provided"
-
-      const submissionData = {
-        mode,
-        terrain,
-        bags: Number(bags),
-        wasteKg: submittedWaste,
-        description,
-        location: finalLocation,
-        verificationScore,
-        reward: 10,
-        submittedAt:
-          new Date().toISOString(),
-      }
-
-      localStorage.setItem(
-        "lastCleanupSubmission",
-        JSON.stringify(submissionData),
-      )
-
-      localStorage.setItem(
-        "missionSubmitted",
-        "true",
-      )
-
-      // ---------------------------------------------
-      // SAVE ACTIVITY
-      // ---------------------------------------------
-
-      const existingActivities =
-        JSON.parse(
-          localStorage.getItem(
-            "cleanupActivities",
-          ) || "[]",
+        setEarnedCredits(
+          reward,
         )
 
-      existingActivities.unshift({
-        title:
-          "Cleanup mission completed",
-        date:
-          new Date().toLocaleString(),
-        credits: "+10",
-        wasteKg: submittedWaste,
-        status: "Verified",
-        mode,
-        terrain,
-        location: finalLocation,
-      })
+        /*
+         * Update total recycled/collected waste.
+         */
+        const currentWaste =
+          Number(
+            localStorage.getItem(
+              `wasteRecycled_${user.uid}`,
+            ),
+          ) || 0
 
-      localStorage.setItem(
-        "cleanupActivities",
-        JSON.stringify(
-          existingActivities,
-        ),
-      )
+        const newWaste =
+          currentWaste +
+          submittedWaste
 
-      setIsSubmitting(false)
-      setSubmitted(true)
-    }, 800)
+        localStorage.setItem(
+          `wasteRecycled_${user.uid}`,
+          newWaste.toString(),
+        )
+
+        /*
+         * Update verified actions.
+         */
+        const currentActions =
+          Number(
+            localStorage.getItem(
+              `verifiedActions_${user.uid}`,
+            ),
+          ) || 0
+
+        const newActions =
+          currentActions + 1
+
+        localStorage.setItem(
+          `verifiedActions_${user.uid}`,
+          newActions.toString(),
+        )
+
+        /*
+         * Save latest cleanup submission.
+         */
+        const submissionData = {
+          id: submissionId,
+          userId: user.uid,
+          mode,
+          terrain,
+          bags: Number(bags),
+          wasteKg: submittedWaste,
+          description,
+          location: finalLocation,
+          verificationScore,
+          reward,
+          status: "Verified",
+          submittedAt:
+            new Date().toISOString(),
+        }
+
+        localStorage.setItem(
+          `lastCleanupSubmission_${user.uid}`,
+          JSON.stringify(
+            submissionData,
+          ),
+        )
+
+        /*
+         * Mark mission as completed.
+         */
+        localStorage.setItem(
+          `missionSubmitted_${user.uid}`,
+          "true",
+        )
+
+        /*
+         * Save cleanup-specific history.
+         */
+        const cleanupActivities =
+          JSON.parse(
+            localStorage.getItem(
+              `cleanupActivities_${user.uid}`,
+            ) || "[]",
+          )
+
+        const userCleanupActivities =
+          Array.isArray(
+            cleanupActivities,
+          )
+            ? cleanupActivities
+            : []
+
+        userCleanupActivities.unshift({
+          id: submissionId,
+          userId: user.uid,
+          title:
+            "Cleanup mission completed",
+          date:
+            new Date().toLocaleString(),
+          credits: `+${reward}`,
+          wasteKg: submittedWaste,
+          status: "Verified",
+          mode,
+          terrain,
+          location: finalLocation,
+          verificationScore,
+        })
+
+        localStorage.setItem(
+          `cleanupActivities_${user.uid}`,
+          JSON.stringify(
+            userCleanupActivities,
+          ),
+        )
+
+        /*
+         * Add verified cleanup to the main
+         * user activity history.
+         *
+         * Dashboard / Activity / Impact
+         * can now read the same activity.
+         */
+        const activityKey =
+          `eco_clean_hub_activity_${user.uid}`
+
+        const existingActivities =
+          JSON.parse(
+            localStorage.getItem(
+              activityKey,
+            ) || "[]",
+          )
+
+        const activities =
+          Array.isArray(
+            existingActivities,
+          )
+            ? existingActivities
+            : []
+
+        const cleanupActivity = {
+          id: submissionId,
+          userId: user.uid,
+
+          title:
+            "Cleanup mission completed",
+
+          category: "Cleanup",
+
+          type: terrain,
+
+          confidence:
+            Number(
+              verificationScore,
+            ) || 0,
+
+          guidance: [
+            "Cleanup activity verified by AI.",
+          ],
+
+          status: "Verified",
+
+          credits: reward,
+
+          weightKg:
+            submittedWaste,
+
+          recycledKg:
+            submittedWaste,
+
+          co2Kg:
+            submittedWaste *
+            0.75,
+
+          waterLiters: 0,
+
+          treesEquivalent:
+            submittedWaste *
+            0.75 *
+            0.147,
+
+          mode,
+
+          terrain,
+
+          bags: Number(bags),
+
+          location:
+            finalLocation,
+
+          verificationScore,
+
+          createdAt:
+            new Date().toISOString(),
+        }
+
+        activities.unshift(
+          cleanupActivity,
+        )
+
+        localStorage.setItem(
+          activityKey,
+          JSON.stringify(
+            activities,
+          ),
+        )
+
+        /*
+         * Tell Activity, Dashboard and
+         * EcoCreditsCard that new data exists.
+         */
+        window.dispatchEvent(
+          new Event(
+            "eco-clean-hub-activity-updated",
+          ),
+        )
+
+        window.dispatchEvent(
+          new Event(
+            "eco-clean-hub-credits-updated",
+          ),
+        )
+
+        setSubmitted(true)
+      } catch (error) {
+        console.error(
+          "Cleanup submission failed:",
+          error,
+        )
+
+        alert(
+          error.message ||
+            "Unable to submit cleanup. Please try again.",
+        )
+      } finally {
+        setIsSubmitting(false)
+      }
+    }, 700)
   }
 
-  // --------------------------------------------------
-  // SUCCESS SCREEN
-  // --------------------------------------------------
-
+  /*
+   * SUCCESS SCREEN
+   */
   if (submitted) {
     return (
-      <div className="min-h-screen bg-[#f6faf7] px-4 py-10 text-[#14231a]">
-        <div className="mx-auto flex min-h-[80vh] max-w-xl items-center justify-center">
-          <div className="w-full rounded-3xl border border-[#dfeae3] bg-white p-8 text-center shadow-lg sm:p-10">
+      <main className="min-h-screen bg-[#f6faf7] px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-2xl">
+          <section className="rounded-[2rem] border border-green-100 bg-white p-8 text-center shadow-xl sm:p-12">
+
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-[#176b45]">
               <CheckCircle2 size={42} />
             </div>
 
-            <h1 className="mt-6 text-3xl font-bold">
-              Mission Submitted!
-            </h1>
-
-            <p className="mt-3 text-slate-500">
-              Your cleanup activity has been
-              successfully verified and
-              submitted.
+            <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-[#176b45]">
+              Eco Clean Hub
             </p>
 
-            <div className="mx-auto mt-7 max-w-sm rounded-2xl bg-[#edf8f1] p-5">
-              <p className="text-sm font-medium text-slate-500">
+            <h1 className="mt-2 text-3xl font-black text-slate-800">
+              Cleanup Submitted Successfully
+            </h1>
+
+            <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-slate-500">
+              Your cleanup activity has been
+              verified by AI and recorded in
+              your activity history.
+            </p>
+
+            <div className="mx-auto mt-7 max-w-sm rounded-2xl bg-[#edf8f1] p-6">
+
+              <p className="text-sm font-semibold text-slate-500">
                 Eco-Credits Earned
               </p>
 
-              <p className="mt-1 text-4xl font-bold text-[#176b45]">
-                +10
+              <p className="mt-2 text-4xl font-black text-[#176b45]">
+                +{earnedCredits}
               </p>
 
-              <p className="mt-2 text-xs text-slate-500">
-                Waste recycled:{" "}
-                {Number(wasteKg).toFixed(1)}{" "}
-                kg
+              <p className="mt-1 text-xs text-slate-400">
+                Added to your Eco-Credit wallet
               </p>
 
-              <p className="mt-2 text-xs text-slate-500">
-                Location:{" "}
-                {currentLocation ||
-                  savedManualLocation ||
-                  "Location not provided"}
-              </p>
             </div>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    "/dashboard",
+                  )
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#176b45] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#125637]"
+              >
+                <ArrowLeft size={17} />
+                Back to Dashboard
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    "/activity",
+                  )
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#176b45] bg-white px-5 py-3 text-sm font-bold text-[#176b45] transition hover:bg-[#edf8f1]"
+              >
+                View Activity
+              </button>
+
+            </div>
+
+          </section>
+        </div>
+      </main>
+    )
+  }
+
+  return (
+    <main className="min-h-screen bg-[#f6faf7] px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl">
+
+        {/* Header */}
+        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+          <div>
 
             <button
               type="button"
               onClick={() =>
-                navigate("/dashboard")
+                navigate(-1)
               }
-              className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#176b45] px-5 py-3 font-semibold text-white transition hover:bg-[#125a39]"
+              className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-white hover:text-[#0b8f4d]"
             >
-              Go to Dashboard
-
-              <ArrowLeft
-                size={18}
-                className="rotate-180"
-              />
+              <ArrowLeft size={18} />
+              Back
             </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
-  // --------------------------------------------------
-  // MAIN PAGE
-  // --------------------------------------------------
+            <div className="mt-5 flex items-center gap-3">
 
-  return (
-    <div className="min-h-screen bg-[#f6faf7] text-[#14231a]">
-      {/* HEADER */}
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-100 text-[#0b8f4d]">
+                <Sparkles size={24} />
+              </div>
 
-      <header className="border-b border-[#dfeae3] bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-[#176b45]"
-          >
-            <ArrowLeft size={18} />
-            Back
-          </button>
+              <div>
 
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#176b45] text-white">
-              <Sparkles size={18} />
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0b8f4d]">
+                  Eco Clean Hub
+                </p>
+
+                <h1 className="mt-1 text-3xl font-black tracking-tight text-[#102119]">
+                  Submit Cleanup
+                </h1>
+
+              </div>
+
             </div>
 
-            <span className="font-bold text-[#176b45]">
-              Eco Clean Hub
-            </span>
-          </div>
-        </div>
-      </header>
-
-      {/* MAIN */}
-
-      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-8">
-        {/* TITLE */}
-
-        <div className="mb-6">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-[#176b45]">
-              {mode}
-            </span>
-
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-              {terrain}
-            </span>
           </div>
 
-          <h1 className="mt-3 text-2xl font-bold sm:text-3xl">
-            Submit Cleanup Mission
-          </h1>
+          <div className="inline-flex items-center gap-2 self-start rounded-full border border-green-100 bg-white px-4 py-2 text-sm font-bold text-[#0b8f4d] shadow-sm sm:self-auto">
+            <ShieldCheck size={16} />
+            AI Verified Proof
+          </div>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Add your cleanup details and verify
-            your activity.
-          </p>
-        </div>
+        </header>
 
-        <div className="grid gap-5 lg:grid-cols-[1fr_1.15fr]">
-          {/* LEFT SIDE */}
+        <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
 
+          {/* LEFT COLUMN */}
           <div className="space-y-5">
-            {/* MISSION DETAILS */}
 
+            {/* Cleanup Details */}
             <section className="rounded-2xl border border-[#dfeae3] bg-white p-5 shadow-sm">
+
               <div className="mb-5 flex items-center gap-3">
+
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#edf8f1] text-[#176b45]">
                   <Weight size={20} />
                 </div>
 
                 <div>
+
                   <h2 className="font-bold">
                     Cleanup Details
                   </h2>
 
                   <p className="text-xs text-slate-400">
-                    Tell us what you collected
+                    Tell us about your cleanup
                   </p>
+
                 </div>
+
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                {/* WASTE KG */}
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Waste Weight
-                  </label>
 
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="0.1"
-                      step="0.1"
-                      value={wasteKg}
-                      onChange={(e) =>
-                        setWasteKg(
-                          e.target.value,
-                        )
-                      }
-                      placeholder="e.g. 2.5"
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-sm outline-none transition focus:border-[#176b45] focus:ring-2 focus:ring-green-100"
-                    />
-
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
-                      kg
-                    </span>
-                  </div>
-                </div>
-
-                {/* BAGS */}
-
-                <div>
                   <label className="mb-2 block text-sm font-semibold text-slate-700">
                     Number of Bags
                   </label>
@@ -607,114 +774,142 @@ function SubmitCleanup() {
                     type="number"
                     min="1"
                     value={bags}
-                    onChange={(e) =>
+                    onChange={(event) =>
                       setBags(
-                        e.target.value,
+                        event.target.value,
                       )
                     }
                     placeholder="e.g. 3"
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#176b45] focus:ring-2 focus:ring-green-100"
                   />
+
                 </div>
+
+                <div>
+
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Waste Weight (kg)
+                  </label>
+
+                  <input
+                    type="number"
+                    min="0.1"
+                    step="0.1"
+                    value={wasteKg}
+                    onChange={(event) =>
+                      setWasteKg(
+                        event.target.value,
+                      )
+                    }
+                    placeholder="e.g. 4.5"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#176b45] focus:ring-2 focus:ring-green-100"
+                  />
+
+                </div>
+
               </div>
 
-              {/* DESCRIPTION */}
-
               <div className="mt-4">
+
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
                   Description
                 </label>
 
                 <textarea
+                  rows={4}
                   value={description}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setDescription(
-                      e.target.value,
+                      event.target.value,
                     )
                   }
-                  rows={3}
-                  placeholder="Briefly describe your cleanup activity..."
+                  placeholder="Describe what you cleaned..."
                   className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#176b45] focus:ring-2 focus:ring-green-100"
                 />
+
               </div>
+
             </section>
 
-            {/* LOCATION */}
-
+            {/* Cleanup Location */}
             <section className="rounded-2xl border border-[#dfeae3] bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-center gap-3">
+
+              <div className="mb-5 flex items-center gap-3">
+
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#edf8f1] text-[#176b45]">
                   <MapPin size={20} />
                 </div>
 
                 <div>
+
                   <h2 className="font-bold">
                     Cleanup Location
                   </h2>
 
                   <p className="text-xs text-slate-400">
-                    Add where the cleanup happened
+                    Add the location of your cleanup
                   </p>
-                </div>
-              </div>
 
-              <div className="rounded-xl bg-slate-50 p-4">
-                <div className="flex items-start gap-3">
-                  <MapPin
-                    size={18}
-                    className="mt-0.5 shrink-0 text-[#176b45]"
-                  />
-
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-slate-400">
-                      Current location
-                    </p>
-
-                    <p className="mt-1 break-words text-sm font-semibold text-slate-700">
-                      {currentLocation ||
-                        savedManualLocation ||
-                        "Location not selected"}
-                    </p>
-                  </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={getCurrentLocation}
-                  disabled={isGettingLocation}
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#176b45] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#125a39] disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {isGettingLocation ? (
-                    <>
-                      <Loader2
-                        size={16}
-                        className="animate-spin"
-                      />
-                      Finding Location...
-                    </>
-                  ) : (
-                    <>
-                      <Navigation size={16} />
-                      Use My Location
-                    </>
-                  )}
-                </button>
               </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Current Location
+                </p>
+
+                <p className="mt-2 text-sm font-semibold text-slate-700">
+                  {currentLocation ||
+                    savedManualLocation ||
+                    "Location not selected"}
+                </p>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={getCurrentLocation}
+                disabled={isGettingLocation}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#176b45] px-4 py-3 text-sm font-semibold text-[#176b45] transition hover:bg-[#edf8f1] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+
+                {isGettingLocation ? (
+                  <>
+                    <Loader2
+                      size={17}
+                      className="animate-spin"
+                    />
+                    Getting Location...
+                  </>
+                ) : (
+                  <>
+                    <Navigation size={17} />
+                    Use My Location
+                  </>
+                )}
+
+              </button>
+
             </section>
+
           </div>
 
-          {/* RIGHT SIDE */}
-
+          {/* RIGHT COLUMN */}
           <div className="space-y-5">
-            {/* PHOTOS */}
 
+            {/* Cleanup Photos */}
             <section className="rounded-2xl border border-[#dfeae3] bg-white p-5 shadow-sm">
+
               <div className="mb-5 flex items-center gap-3">
+
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#edf8f1] text-[#176b45]">
                   <Camera size={20} />
                 </div>
 
                 <div>
+
                   <h2 className="font-bold">
                     Cleanup Photos
                   </h2>
@@ -722,16 +917,19 @@ function SubmitCleanup() {
                   <p className="text-xs text-slate-400">
                     Upload proof of your activity
                   </p>
+
                 </div>
+
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
+
                 <PhotoUpload
                   title="Before"
                   image={beforePhoto}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     handleImageChange(
-                      e,
+                      event,
                       setBeforePhoto,
                     )
                   }
@@ -746,9 +944,9 @@ function SubmitCleanup() {
                 <PhotoUpload
                   title="After"
                   image={afterPhoto}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     handleImageChange(
-                      e,
+                      event,
                       setAfterPhoto,
                     )
                   }
@@ -763,9 +961,9 @@ function SubmitCleanup() {
                 <PhotoUpload
                   title="Action"
                   image={actionPhoto}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     handleImageChange(
-                      e,
+                      event,
                       setActionPhoto,
                     )
                   }
@@ -776,19 +974,24 @@ function SubmitCleanup() {
                     )
                   }
                 />
+
               </div>
+
             </section>
 
-            {/* VERIFICATION */}
-
+            {/* AI Verification */}
             <section className="rounded-2xl border border-[#dfeae3] bg-white p-5 shadow-sm">
+
               <div className="flex items-center justify-between gap-4">
+
                 <div className="flex items-center gap-3">
+
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#edf8f1] text-[#176b45]">
                     <ShieldCheck size={20} />
                   </div>
 
                   <div>
+
                     <h2 className="font-bold">
                       AI Verification
                     </h2>
@@ -796,7 +999,9 @@ function SubmitCleanup() {
                     <p className="text-xs text-slate-400">
                       Check your uploaded proof
                     </p>
+
                   </div>
+
                 </div>
 
                 {verificationStatus ===
@@ -805,13 +1010,14 @@ function SubmitCleanup() {
                     Verified
                   </div>
                 )}
+
               </div>
 
-              {/* IDLE */}
-
+              {/* Idle */}
               {verificationStatus ===
                 "idle" && (
                 <div className="mt-4">
+
                   <p className="mb-4 text-sm leading-6 text-slate-500">
                     AI will compare your Before,
                     After and Action photos to
@@ -827,21 +1033,24 @@ function SubmitCleanup() {
                     <ShieldCheck size={17} />
                     Verify Photos
                   </button>
+
                 </div>
               )}
 
-              {/* CHECKING */}
-
+              {/* Checking */}
               {verificationStatus ===
                 "checking" && (
                 <div className="mt-4 rounded-xl bg-[#edf8f1] p-4">
+
                   <div className="flex items-center gap-3">
+
                     <Loader2
                       size={20}
                       className="animate-spin text-[#176b45]"
                     />
 
                     <div>
+
                       <p className="text-sm font-semibold text-[#176b45]">
                         AI is checking your photos...
                       </p>
@@ -851,18 +1060,23 @@ function SubmitCleanup() {
                         and Action photos. Please
                         wait a moment.
                       </p>
+
                     </div>
+
                   </div>
+
                 </div>
               )}
 
-              {/* VERIFIED */}
-
+              {/* Verified */}
               {verificationStatus ===
                 "verified" && (
                 <div className="mt-4 rounded-xl bg-green-50 p-4">
+
                   <div className="flex items-center justify-between">
+
                     <div>
+
                       <p className="text-sm font-bold text-green-700">
                         Cleanup verified successfully
                       </p>
@@ -872,9 +1086,11 @@ function SubmitCleanup() {
                         evidence of your cleanup
                         activity.
                       </p>
+
                     </div>
 
                     <div className="text-right">
+
                       <p className="text-2xl font-bold text-[#176b45]">
                         {verificationScore}%
                       </p>
@@ -882,17 +1098,23 @@ function SubmitCleanup() {
                       <p className="text-[10px] text-slate-400">
                         confidence
                       </p>
+
                     </div>
+
                   </div>
+
                 </div>
               )}
+
             </section>
 
-            {/* REWARD + SUBMIT */}
-
+            {/* Mission Reward */}
             <section className="rounded-2xl bg-[#176b45] p-5 text-white shadow-lg">
+
               <div className="flex items-center justify-between gap-4">
+
                 <div>
+
                   <p className="text-sm text-green-100">
                     Mission Reward
                   </p>
@@ -905,11 +1127,13 @@ function SubmitCleanup() {
                     Eco-Credits per verified
                     submission
                   </p>
+
                 </div>
 
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
                   <Sparkles size={26} />
                 </div>
+
               </div>
 
               <button
@@ -922,6 +1146,7 @@ function SubmitCleanup() {
                 }
                 className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 font-semibold text-[#176b45] transition hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
+
                 {isSubmitting ? (
                   <>
                     <Loader2
@@ -936,18 +1161,19 @@ function SubmitCleanup() {
                     Submit Cleanup
                   </>
                 )}
+
               </button>
+
             </section>
+
           </div>
+
         </div>
-      </main>
-    </div>
+
+      </div>
+    </main>
   )
 }
-
-// --------------------------------------------------
-// PHOTO UPLOAD COMPONENT
-// --------------------------------------------------
 
 function PhotoUpload({
   title,
@@ -957,12 +1183,14 @@ function PhotoUpload({
 }) {
   return (
     <div>
+
       <p className="mb-2 text-xs font-semibold text-slate-600">
         {title} Photo
       </p>
 
       {image ? (
         <div className="relative overflow-hidden rounded-xl border border-green-200 bg-green-50">
+
           <img
             src={image.preview}
             alt={`${title} cleanup`}
@@ -980,9 +1208,11 @@ function PhotoUpload({
           <div className="absolute bottom-2 left-2 rounded-full bg-white/90 px-2 py-1 text-[10px] font-semibold text-green-700">
             Uploaded
           </div>
+
         </div>
       ) : (
         <label className="flex h-32 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-center transition hover:border-[#176b45] hover:bg-[#edf8f1]">
+
           <ImagePlus
             size={24}
             className="text-[#176b45]"
@@ -1002,8 +1232,10 @@ function PhotoUpload({
             onChange={onChange}
             className="hidden"
           />
+
         </label>
       )}
+
     </div>
   )
 }

@@ -2,11 +2,8 @@ const express = require("express")
 const cors = require("cors")
 const multer = require("multer")
 require("dotenv").config()
-
 const app = express()
-
 const PORT = 3001
-
 const GROQ_API_URL =
   "https://api.groq.com/openai/v1/chat/completions"
 

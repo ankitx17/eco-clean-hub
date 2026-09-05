@@ -32,7 +32,10 @@ function Scanner() {
 
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop())
+      streamRef.current
+        .getTracks()
+        .forEach((track) => track.stop())
+
       streamRef.current = null
     }
 
@@ -108,20 +111,28 @@ function Scanner() {
         setError(
           "Camera is not supported by this browser. Please use image upload."
         )
+
         setCameraLoading(false)
         return
       }
 
       stopCamera()
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-        audio: false,
-      })
+      const stream =
+        await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: {
+              ideal: "environment",
+            },
+            width: {
+              ideal: 1280,
+            },
+            height: {
+              ideal: 720,
+            },
+          },
+          audio: false,
+        })
 
       streamRef.current = stream
       setMode("camera")
@@ -138,8 +149,14 @@ function Scanner() {
         try {
           await video.play()
         } catch (playError) {
-          console.error("Camera playback error:", playError)
-          setError("Unable to start camera preview. Please try again.")
+          console.error(
+            "Camera playback error:",
+            playError
+          )
+
+          setError(
+            "Unable to start camera preview. Please try again."
+          )
         }
       })
     } catch (cameraError) {
@@ -163,7 +180,10 @@ function Scanner() {
     if (!video || !canvas) return
 
     if (!video.videoWidth || !video.videoHeight) {
-      setError("Camera is not ready yet. Please wait a moment.")
+      setError(
+        "Camera is not ready yet. Please wait a moment."
+      )
+
       return
     }
 
@@ -173,16 +193,28 @@ function Scanner() {
     const context = canvas.getContext("2d")
 
     if (!context) {
-      setError("Unable to capture the image. Please try again.")
+      setError(
+        "Unable to capture the image. Please try again."
+      )
+
       return
     }
 
-    context.drawImage(video, 0, 0, canvas.width, canvas.height)
+    context.drawImage(
+      video,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    )
 
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          setError("Unable to create the captured image.")
+          setError(
+            "Unable to create the captured image."
+          )
+
           return
         }
 
@@ -235,50 +267,93 @@ function Scanner() {
     setImage(null)
     setResult(null)
     setError("")
+
     startCamera()
   }
 
+  /*
+   * IMPORTANT:
+   *
+   * Scanner only records the AI classification.
+   *
+   * No Eco-Credits are awarded here.
+   *
+   * Credits will be awarded later from
+   * SubmitCleanup.jsx after the cleanup
+   * is successfully verified by AI.
+   */
   const saveScanActivity = (classification) => {
     if (!user?.uid || !classification) {
       return
     }
 
     try {
-      const activityKey = `eco_clean_hub_activity_${user.uid}`
+      const activityKey =
+        `eco_clean_hub_activity_${user.uid}`
 
-      const storedActivities = JSON.parse(
-        localStorage.getItem(activityKey) || "[]"
-      )
+      const storedActivities =
+        JSON.parse(
+          localStorage.getItem(
+            activityKey
+          ) || "[]"
+        )
 
-      const existingActivities = Array.isArray(storedActivities)
-        ? storedActivities
-        : []
+      const existingActivities =
+        Array.isArray(storedActivities)
+          ? storedActivities
+          : []
 
       const newActivity = {
-        id: `scan_${Date.now()}_${Math.random()
-          .toString(36)
-          .slice(2, 8)}`,
+        id:
+          `scan_${Date.now()}_${Math.random()
+            .toString(36)
+            .slice(2, 8)}`,
+
         userId: user.uid,
-        title: `${classification.category} waste scanned`,
-        category: classification.category,
-        type: classification.type,
-        confidence: Number(classification.confidence) || 0,
-        guidance: Array.isArray(classification.guidance)
-          ? classification.guidance
-          : [],
+
+        title:
+          `${classification.category} waste scanned`,
+
+        category:
+          classification.category,
+
+        type:
+          classification.type,
+
+        confidence:
+          Number(
+            classification.confidence
+          ) || 0,
+
+        guidance:
+          Array.isArray(
+            classification.guidance
+          )
+            ? classification.guidance
+            : [],
+
         status: "Scanned",
 
-        // No fake impact values.
-        // These will be updated later when verification/reward
-        // actually records real environmental impact.
+        /*
+         * No credits at scan stage.
+         *
+         * User receives credits only after
+         * successful cleanup verification.
+         */
         credits: 0,
+
+        /*
+         * No real disposal/recycling weight
+         * is known at scan stage.
+         */
         weightKg: 0,
         recycledKg: 0,
         co2Kg: 0,
         waterLiters: 0,
         treesEquivalent: 0,
 
-        createdAt: new Date().toISOString(),
+        createdAt:
+          new Date().toISOString(),
       }
 
       const updatedActivities = [
@@ -288,33 +363,57 @@ function Scanner() {
 
       localStorage.setItem(
         activityKey,
-        JSON.stringify(updatedActivities)
+        JSON.stringify(
+          updatedActivities
+        )
       )
 
       window.dispatchEvent(
-        new Event("eco-clean-hub-activity-updated")
+        new Event(
+          "eco-clean-hub-activity-updated"
+        )
       )
     } catch (storageError) {
-      console.error("Failed to save scan activity:", storageError)
+      console.error(
+        "Failed to save scan activity:",
+        storageError
+      )
     }
   }
 
   const analyzeWaste = async () => {
-    if (!image?.file || analyzing) return
+    if (!image?.file || analyzing) {
+      return
+    }
 
     setError("")
     setAnalyzing(true)
     setResult(null)
 
     try {
-      const classification = await classifyWaste(image.file)
+      const classification =
+        await classifyWaste(
+          image.file
+        )
 
       setResult(classification)
 
-      saveScanActivity(classification)
+      /*
+       * Only save the classification here.
+       *
+       * DO NOT award credits here.
+       */
+      saveScanActivity(
+        classification
+      )
     } catch (analysisError) {
-      console.error(analysisError)
-      setError("Unable to analyze this image. Please try again.")
+      console.error(
+        analysisError
+      )
+
+      setError(
+        "Unable to analyze this image. Please try again."
+      )
     } finally {
       setAnalyzing(false)
     }
@@ -326,13 +425,13 @@ function Scanner() {
 
         {/* Top navigation */}
         <header className="mb-6 flex items-center justify-between gap-4">
-   <Link
-  to="/dashboard"
-  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-white hover:text-[#0b8f4d]"
->
-  <ArrowLeft size={18} />
-  Back to Dashboard
-</Link>
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-white hover:text-[#0b8f4d]"
+          >
+            <ArrowLeft size={18} />
+            Back to Dashboard
+          </Link>
 
           <div className="flex items-center gap-2 rounded-full border border-green-100 bg-white px-4 py-2 text-sm font-bold text-[#0b8f4d] shadow-sm">
             <Sparkles size={16} />
@@ -364,7 +463,10 @@ function Scanner() {
               </div>
 
               <div className="hidden items-center gap-2 text-xs font-medium text-slate-400 sm:flex">
-                <CheckCircle2 size={15} className="text-[#0b8f4d]" />
+                <CheckCircle2
+                  size={15}
+                  className="text-[#0b8f4d]"
+                />
                 Camera ready
               </div>
 
@@ -383,7 +485,10 @@ function Scanner() {
             />
 
             {/* Hidden canvas */}
-            <canvas ref={canvasRef} className="hidden" />
+            <canvas
+              ref={canvasRef}
+              className="hidden"
+            />
 
             {/* START SCREEN */}
             {mode === "start" && (
@@ -473,6 +578,7 @@ function Scanner() {
                   <div className="pointer-events-none absolute inset-0">
 
                     <div className="absolute inset-x-6 top-6 flex items-center justify-between">
+
                       <div className="rounded-full bg-black/50 px-3 py-2 text-xs font-semibold text-white backdrop-blur">
                         LIVE CAMERA
                       </div>
@@ -481,18 +587,25 @@ function Scanner() {
                         <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
                         Ready
                       </div>
+
                     </div>
 
                     <div className="absolute inset-0 flex items-center justify-center">
+
                       <div className="relative h-56 w-56 sm:h-64 sm:w-64">
 
                         <div className="absolute left-0 top-0 h-10 w-10 border-l-2 border-t-2 border-green-300" />
+
                         <div className="absolute right-0 top-0 h-10 w-10 border-r-2 border-t-2 border-green-300" />
+
                         <div className="absolute bottom-0 left-0 h-10 w-10 border-b-2 border-l-2 border-green-300" />
+
                         <div className="absolute bottom-0 right-0 h-10 w-10 border-b-2 border-r-2 border-green-300" />
 
                         <div className="absolute left-3 right-3 top-1/2 h-px bg-green-300/80 shadow-[0_0_14px_rgba(134,239,172,1)]" />
+
                       </div>
+
                     </div>
 
                     <div className="absolute bottom-6 left-0 right-0 text-center text-xs font-medium text-white/80">
@@ -500,6 +613,7 @@ function Scanner() {
                     </div>
 
                   </div>
+
                 </div>
 
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
@@ -562,6 +676,7 @@ function Scanner() {
                 <div className="mt-5 flex flex-col gap-4 rounded-2xl bg-green-50 p-4 sm:flex-row sm:items-center sm:justify-between">
 
                   <div className="min-w-0">
+
                     <p className="text-xs font-medium text-slate-500">
                       Selected image
                     </p>
@@ -569,6 +684,7 @@ function Scanner() {
                     <p className="mt-1 truncate text-sm font-bold text-[#14231a]">
                       {image.name}
                     </p>
+
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2 text-xs font-semibold text-[#0b8f4d]">
@@ -626,6 +742,7 @@ function Scanner() {
                         </div>
 
                         <div>
+
                           <h3 className="font-bold text-[#14231a]">
                             Ready for AI analysis
                           </h3>
@@ -634,6 +751,7 @@ function Scanner() {
                             Analyze this image to identify the waste type
                             and get disposal guidance.
                           </p>
+
                         </div>
 
                       </div>
@@ -662,6 +780,7 @@ function Scanner() {
                       </div>
 
                       <div>
+
                         <h3 className="font-bold text-[#14231a]">
                           Analyzing your waste...
                         </h3>
@@ -670,6 +789,7 @@ function Scanner() {
                           Please wait while Eco Clean Hub processes the
                           image.
                         </p>
+
                       </div>
 
                     </div>
@@ -686,6 +806,7 @@ function Scanner() {
                         </div>
 
                         <div>
+
                           <p className="text-xs font-bold uppercase tracking-wider text-[#0b8f4d]">
                             Classification complete
                           </p>
@@ -697,6 +818,7 @@ function Scanner() {
                           <p className="mt-1 text-sm font-semibold text-slate-500">
                             {result.type}
                           </p>
+
                         </div>
 
                       </div>
@@ -717,12 +839,14 @@ function Scanner() {
                         </div>
 
                         <div className="mt-3 h-2 overflow-hidden rounded-full bg-green-100">
+
                           <div
                             className="h-full rounded-full bg-[#0b8f4d] transition-all duration-700"
                             style={{
                               width: `${result.confidence}%`,
                             }}
                           />
+
                         </div>
 
                       </div>
@@ -736,19 +860,25 @@ function Scanner() {
 
                         <ul className="mt-3 space-y-2">
 
-                          {result.guidance.map((item, index) => (
-                            <li
-                              key={index}
-                              className="flex items-start gap-2 text-sm leading-6 text-slate-600"
-                            >
-                              <CheckCircle2
-                                size={16}
-                                className="mt-1 shrink-0 text-[#0b8f4d]"
-                              />
+                          {result.guidance.map(
+                            (item, index) => (
+                              <li
+                                key={index}
+                                className="flex items-start gap-2 text-sm leading-6 text-slate-600"
+                              >
 
-                              <span>{item}</span>
-                            </li>
-                          ))}
+                                <CheckCircle2
+                                  size={16}
+                                  className="mt-1 shrink-0 text-[#0b8f4d]"
+                                />
+
+                                <span>
+                                  {item}
+                                </span>
+
+                              </li>
+                            )
+                          )}
 
                         </ul>
 
@@ -789,9 +919,13 @@ function Scanner() {
             {error && (
               <div className="mt-5 flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">
 
-                <X size={18} className="mt-0.5 shrink-0" />
+                <X
+                  size={18}
+                  className="mt-0.5 shrink-0"
+                />
 
                 <div>
+
                   <p className="font-bold">
                     Scanner issue
                   </p>
@@ -799,6 +933,7 @@ function Scanner() {
                   <p className="mt-1 leading-6">
                     {error}
                   </p>
+
                 </div>
 
               </div>
@@ -811,7 +946,10 @@ function Scanner() {
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
 
           <div className="rounded-2xl border border-green-100 bg-white p-4 shadow-sm">
-            <div className="text-lg">💡</div>
+
+            <div className="text-lg">
+              💡
+            </div>
 
             <p className="mt-2 text-sm font-bold text-[#14231a]">
               Good lighting
@@ -820,10 +958,14 @@ function Scanner() {
             <p className="mt-1 text-xs leading-5 text-slate-500">
               Avoid very dark or overexposed photos.
             </p>
+
           </div>
 
           <div className="rounded-2xl border border-green-100 bg-white p-4 shadow-sm">
-            <div className="text-lg">📦</div>
+
+            <div className="text-lg">
+              📦
+            </div>
 
             <p className="mt-2 text-sm font-bold text-[#14231a]">
               One item
@@ -832,10 +974,14 @@ function Scanner() {
             <p className="mt-1 text-xs leading-5 text-slate-500">
               Keep one waste item clearly visible.
             </p>
+
           </div>
 
           <div className="rounded-2xl border border-green-100 bg-white p-4 shadow-sm">
-            <div className="text-lg">📱</div>
+
+            <div className="text-lg">
+              📱
+            </div>
 
             <p className="mt-2 text-sm font-bold text-[#14231a]">
               Keep it steady
@@ -844,6 +990,7 @@ function Scanner() {
             <p className="mt-1 text-xs leading-5 text-slate-500">
               A sharp image helps classification.
             </p>
+
           </div>
 
         </div>
