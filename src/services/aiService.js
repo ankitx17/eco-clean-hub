@@ -1,8 +1,11 @@
-const API_URL = "http://127.0.0.1:3001/api/classify-waste"
+const API_URL =
+  import.meta.env.VITE_AI_API_URL ||
+  "http://127.0.0.1:3001/api/classify-waste"
 
 const MAX_IMAGE_DIMENSION = 1280
 const JPEG_QUALITY = 0.82
 const MAX_AI_IMAGE_SIZE = 1.5 * 1024 * 1024
+const REQUEST_TIMEOUT = 90000
 
 const optimizeImageForAI = (file) => {
   return new Promise((resolve, reject) => {
@@ -11,7 +14,6 @@ const optimizeImageForAI = (file) => {
       return
     }
 
-    // Small JPEG images do not need optimization.
     if (
       file.size <= MAX_AI_IMAGE_SIZE &&
       file.type === "image/jpeg"
@@ -30,17 +32,19 @@ const optimizeImageForAI = (file) => {
       const originalHeight = image.naturalHeight
 
       if (!originalWidth || !originalHeight) {
-        reject(new Error("Unable to read image dimensions."))
+        reject(
+          new Error(
+            "Unable to read image dimensions.",
+          ),
+        )
         return
       }
 
       const largestSide = Math.max(
         originalWidth,
-        originalHeight
+        originalHeight,
       )
 
-      // Resize only when the original image is larger
-      // than the AI processing limit.
       const scale =
         largestSide > MAX_IMAGE_DIMENSION
           ? MAX_IMAGE_DIMENSION / largestSide
@@ -48,45 +52,54 @@ const optimizeImageForAI = (file) => {
 
       const width = Math.max(
         1,
-        Math.round(originalWidth * scale)
+        Math.round(originalWidth * scale),
       )
 
       const height = Math.max(
         1,
-        Math.round(originalHeight * scale)
+        Math.round(originalHeight * scale),
       )
 
-      const canvas = document.createElement("canvas")
+      const canvas =
+        document.createElement("canvas")
+
       canvas.width = width
       canvas.height = height
 
-      const context = canvas.getContext("2d")
+      const context =
+        canvas.getContext("2d")
 
       if (!context) {
-        reject(new Error("Unable to process image."))
+        reject(
+          new Error(
+            "Unable to process image.",
+          ),
+        )
         return
       }
 
-      // High-quality image scaling for better AI accuracy.
       context.imageSmoothingEnabled = true
       context.imageSmoothingQuality = "high"
+
       context.drawImage(
         image,
         0,
         0,
         width,
-        height
+        height,
       )
 
       canvas.toBlob(
         (blob) => {
           if (!blob) {
-            reject(new Error("Unable to optimize image."))
+            reject(
+              new Error(
+                "Unable to optimize image.",
+              ),
+            )
             return
           }
 
-          // Keep the original when it is already smaller
-          // and optimization would make it larger.
           if (
             blob.size >= file.size &&
             file.size <= MAX_AI_IMAGE_SIZE
@@ -95,26 +108,30 @@ const optimizeImageForAI = (file) => {
             return
           }
 
-          const optimizedFile = new File(
-            [blob],
-            `eco-scan-${Date.now()}.jpg`,
-            {
-              type: "image/jpeg",
-              lastModified: Date.now(),
-            }
-          )
+          const optimizedFile =
+            new File(
+              [blob],
+              `eco-scan-${Date.now()}.jpg`,
+              {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              },
+            )
 
           resolve(optimizedFile)
         },
         "image/jpeg",
-        JPEG_QUALITY
+        JPEG_QUALITY,
       )
     }
 
     image.onerror = () => {
       URL.revokeObjectURL(objectUrl)
+
       reject(
-        new Error("Unable to load image for processing.")
+        new Error(
+          "Unable to load image for processing.",
+        ),
       )
     }
 
@@ -122,30 +139,41 @@ const optimizeImageForAI = (file) => {
   })
 }
 
-export async function classifyWaste(imageFile) {
+export async function classifyWaste(
+  imageFile,
+) {
   if (!imageFile) {
-    throw new Error("No waste image provided.")
+    throw new Error(
+      "No waste image provided.",
+    )
   }
 
-  // Optimize only the copy sent to AI.
-  // The original image remains unchanged in the Scanner UI.
-  const optimizedImage = await optimizeImageForAI(imageFile)
+  const optimizedImage =
+    await optimizeImageForAI(imageFile)
 
   const formData = new FormData()
-  formData.append("image", optimizedImage)
 
-  const controller = new AbortController()
+  formData.append(
+    "image",
+    optimizedImage,
+  )
+
+  const controller =
+    new AbortController()
 
   const timeoutId = setTimeout(() => {
     controller.abort()
-  }, 30000)
+  }, REQUEST_TIMEOUT)
 
   try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      body: formData,
-      signal: controller.signal,
-    })
+    const response = await fetch(
+      API_URL,
+      {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      },
+    )
 
     let data
 
@@ -153,7 +181,7 @@ export async function classifyWaste(imageFile) {
       data = await response.json()
     } catch {
       throw new Error(
-        "AI server returned an invalid response."
+        "AI server returned an invalid response.",
       )
     }
 
@@ -161,7 +189,7 @@ export async function classifyWaste(imageFile) {
       throw new Error(
         data?.details ||
           data?.error ||
-          "Failed to classify waste."
+          "Failed to classify waste.",
       )
     }
 
@@ -173,31 +201,46 @@ export async function classifyWaste(imageFile) {
       !Array.isArray(data.guidance)
     ) {
       throw new Error(
-        "AI returned an incomplete classification result."
+        "AI returned an incomplete classification result.",
       )
     }
 
     return {
-      category: data.category.trim(),
-      type: data.type.trim(),
+      category:
+        data.category.trim(),
+
+      type:
+        data.type.trim(),
+
       confidence: Math.max(
         0,
         Math.min(
           100,
-          Math.round(data.confidence)
-        )
+          Math.round(
+            data.confidence,
+          ),
+        ),
       ),
-      guidance: data.guidance
-        .filter(
-          (item) => typeof item === "string"
-        )
-        .map((item) => item.trim())
-        .filter(Boolean),
+
+      guidance:
+        data.guidance
+          .filter(
+            (item) =>
+              typeof item ===
+              "string",
+          )
+          .map((item) =>
+            item.trim(),
+          )
+          .filter(Boolean),
     }
   } catch (error) {
-    if (error.name === "AbortError") {
+    if (
+      error.name ===
+      "AbortError"
+    ) {
       throw new Error(
-        "AI analysis timed out. Please try a clearer image."
+        "AI analysis timed out. Please try again.",
       )
     }
 
