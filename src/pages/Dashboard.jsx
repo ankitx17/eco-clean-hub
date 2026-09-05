@@ -9,15 +9,14 @@ import {
   MapPin,
   Recycle,
   ShieldCheck,
+  ShoppingBag,
   Sparkles,
-  Trophy,
 } from "lucide-react"
 
 import { Link } from "react-router-dom"
 import useAuth from "../hooks/useAuth"
 
 import EcoCreditsCard from "../components/dashboard/EcoCreditsCard"
-import RecentActivity from "../components/dashboard/RecentActivity"
 import DashboardHeader from "../components/dashboard/DashboardHeader"
 import DashboardStats from "../components/dashboard/DashboardStats"
 import ImpactAnalytics from "../components/dashboard/ImpactAnalytics"
@@ -73,12 +72,6 @@ function Dashboard() {
       icon: ShieldCheck,
       to: "/verification",
     },
-    {
-      title: "View Rewards",
-      description: "Redeem your Eco-Credits",
-      icon: Trophy,
-      to: "/rewards",
-    },
   ]
 
   return (
@@ -88,6 +81,7 @@ function Dashboard() {
 
       {/* MAIN */}
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-5 sm:py-8 lg:px-8">
+
         {/* WELCOME */}
         <section className="mb-7 sm:mb-8">
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
@@ -133,7 +127,16 @@ function Dashboard() {
                   <p className="mt-1 text-sm text-green-50">
                     Take part in eco-friendly activities and earn Eco-Credits
                   </p>
+                  <p className="mt-1 text-sm text-green-50">
+                    Take part in eco-friendly activities and earn Eco-Credits
+                  </p>
 
+                  <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+                    Make an Impact
+                    <ArrowRight size={13} />
+                  </div>
+                </div>
+              </div>
                   <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
                     Make an Impact
                     <ArrowRight size={13} />
@@ -278,8 +281,70 @@ function Dashboard() {
         <DashboardStats />
 
         {/* ECO CREDITS */}
-        <section className="mb-8">
+        <section className="mb-5">
           <EcoCreditsCard />
+        </section>
+
+        {/* ECO MARKETPLACE */}
+        <section className="mb-8">
+          <Link
+            to="/redeem"
+            className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-[#dfeae3] bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#bcd8c7] hover:shadow-lg sm:p-6"
+          >
+            {/* Decorative circle */}
+            <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[#edf8f1]" />
+
+            <div className="relative flex min-w-0 items-center gap-4">
+
+              {/* ICON */}
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#edf8f1] text-[#176b45] transition duration-300 group-hover:bg-[#176b45] group-hover:text-white">
+                <ShoppingBag size={26} />
+              </div>
+
+              {/* TEXT */}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-[#14231a]">
+                    Eco Marketplace
+                  </h3>
+
+                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-[#176b45]">
+                    REDEEM
+                  </span>
+                </div>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Use your Eco Credits to redeem exciting rewards
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-[#edf8f1] px-3 py-1 text-xs font-semibold text-[#176b45]">
+                    Mobile Recharge
+                  </span>
+
+                  <span className="rounded-full bg-[#edf8f1] px-3 py-1 text-xs font-semibold text-[#176b45]">
+                    Amazon
+                  </span>
+
+                  <span className="rounded-full bg-[#edf8f1] px-3 py-1 text-xs font-semibold text-[#176b45]">
+                    Flipkart
+                  </span>
+
+                  <span className="rounded-full bg-[#edf8f1] px-3 py-1 text-xs font-semibold text-[#176b45]">
+                    Mystery Box
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ARROW */}
+            <div className="relative ml-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#edf8f1] text-[#176b45] transition duration-300 group-hover:bg-[#176b45] group-hover:text-white">
+              <ArrowRight
+                size={20}
+                className="transition group-hover:translate-x-1"
+              />
+            </div>
+          </Link>
         </section>
 
         {/* PERSONAL IMPACT ANALYTICS */}
@@ -297,7 +362,7 @@ function Dashboard() {
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {quickActions.map((action) => {
               const Icon = action.icon
 
@@ -333,6 +398,7 @@ function Dashboard() {
 
         {/* LOWER CONTENT */}
         <section className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
+
           {/* ACTIVITY */}
           <div className="rounded-2xl border border-[#dfeae3] bg-white p-4 shadow-sm sm:p-6">
             <div className="mb-5 flex items-center justify-between sm:mb-6">
@@ -419,6 +485,7 @@ function Dashboard() {
             <div className="my-6 h-px bg-white/15 sm:my-7" />
 
             <div className="space-y-5">
+
               <div>
                 <div className="mb-2 flex justify-between gap-4 text-sm">
                   <span className="text-green-100">
@@ -450,6 +517,7 @@ function Dashboard() {
                   <div className="h-full w-[72%] rounded-full bg-white" />
                 </div>
               </div>
+
             </div>
 
             <div className="mt-7 rounded-xl bg-white/10 p-4">
@@ -462,11 +530,13 @@ function Dashboard() {
               </p>
             </div>
           </div>
+
         </section>
 
         {/* FINAL CTA */}
         <section className="mt-8 rounded-2xl border border-[#dfeae3] bg-white p-5 shadow-sm sm:p-8">
           <div className="flex flex-col items-start justify-between gap-5 md:flex-row md:items-center">
+
             <div className="min-w-0">
               <div className="mb-2 flex items-center gap-2 text-[#176b45]">
                 <Sparkles size={17} />
@@ -492,8 +562,10 @@ function Dashboard() {
               Start Scanning
               <ArrowRight size={17} />
             </Link>
+
           </div>
         </section>
+
       </main>
     </div>
   )

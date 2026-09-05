@@ -7,6 +7,7 @@ const Login = lazy(() => import("../pages/Login"))
 const Register = lazy(() => import("../pages/Register"))
 
 const Dashboard = lazy(() => import("../pages/Dashboard"))
+const RedeemRewards = lazy(() => import("../pages/RedeemRewards"))
 const MissionSelection = lazy(() => import("../pages/MissionSelection"))
 const SelectTerrain = lazy(() => import("../pages/SelectTerrain"))
 const SubmitCleanup = lazy(() => import("../pages/SubmitCleanup"))
@@ -62,6 +63,8 @@ function AppRoutes() {
             path="/dashboard"
             element={<Dashboard />}
           />
+
+          <Route path="/redeem" element={<RedeemRewards />} />
 
           <Route
             path="/missions"
