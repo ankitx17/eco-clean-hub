@@ -457,6 +457,7 @@ function CommunityEvents() {
         const status = getEventStatus(event)
 
         return [
+          "approved",
           "upcoming",
           "ongoing",
           "completed",
