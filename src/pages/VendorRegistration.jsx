@@ -11,6 +11,8 @@ import {
   ShieldCheck,
 } from "lucide-react"
 
+import { submitVendorApplication } from "../services/vendorService"
+
 const FACILITY_TYPES = [
   "MRF",
   "Dry Waste Collection Centre",
@@ -189,6 +191,7 @@ function VendorRegistration() {
            * Try to match the returned state with our
            * dropdown options.
            */
+
           const matchedState =
             INDIAN_STATES.find(
               (stateName) =>
@@ -206,10 +209,7 @@ function VendorRegistration() {
             longitude: longitude.toFixed(6),
           }))
 
-          if (
-            state &&
-            !matchedState
-          ) {
+          if (state && !matchedState) {
             setError(
               "Location found. Please select your state manually."
             )
@@ -225,6 +225,7 @@ function VendorRegistration() {
           /*
            * GPS is still saved even if address lookup fails.
            */
+
           setError(
             "Location detected, but address could not be fetched. Please enter the address manually."
           )
@@ -276,7 +277,7 @@ function VendorRegistration() {
   }
 
   /* =========================================================
-     SUBMIT VENDOR
+     SUBMIT VENDOR APPLICATION
      ========================================================= */
 
   const handleSubmit = async (event) => {
@@ -292,9 +293,9 @@ function VendorRegistration() {
     }
 
     /*
-     * Latitude and longitude are hidden from the UI,
-     * but are still required internally for MRF distance.
+     * GPS is required internally for facility location.
      */
+
     if (!form.latitude || !form.longitude) {
       setError(
         "Please use 'Use my location' to set the facility location."
@@ -305,78 +306,32 @@ function VendorRegistration() {
     setSubmitting(true)
 
     try {
-      const vendor = {
-        id: `vendor_${Date.now()}`,
-
-        name: form.businessName,
+      const result = await submitVendorApplication({
+        ownerName: form.contactPerson,
         businessName: form.businessName,
-
-        contactPerson: form.contactPerson,
         email: form.email,
         phone: form.phone,
-
-        type: form.facilityType,
         facilityType: form.facilityType,
-
         address: form.address,
         city: form.city,
         state: form.state,
         pincode: form.pincode,
-
-        /*
-         * GPS remains internally available for MRF.
-         */
-        latitude: Number(form.latitude),
-        longitude: Number(form.longitude),
-
+        latitude: form.latitude,
+        longitude: form.longitude,
         acceptedWaste,
         description: form.description,
+      })
 
-        // Temporary demo status
-        status: "approved",
-        verified: true,
-        sourceType: "registered-vendor",
-        source: "vendor-registration",
-
-        createdAt: new Date().toISOString(),
-      }
-
-      /*
-       * TEMPORARY DEMO STORAGE
-       *
-       * Abhi admin panel nahi bana hai,
-       * isliye vendor localStorage mein save ho raha hai.
-       */
-
-      const existingVendors = JSON.parse(
-        localStorage.getItem(
-          "eco_clean_hub_registered_vendors"
-        ) || "[]"
+      console.log(
+        "Vendor application submitted:",
+        result
       )
 
-      const vendors = Array.isArray(
-        existingVendors
-      )
-        ? existingVendors
-        : []
-
-      localStorage.setItem(
-        "eco_clean_hub_registered_vendors",
-        JSON.stringify([
-          vendor,
-          ...vendors,
-        ])
+      window.alert(
+        "Vendor application submitted successfully. Your application is now pending admin approval."
       )
 
-      localStorage.setItem(
-        "eco_clean_hub_last_registered_vendor",
-        JSON.stringify(vendor)
-      )
-
-      /*
-       * Vendor register hone ke baad MRF page.
-       */
-      navigate("/mrf")
+      navigate("/")
     } catch (submitError) {
       console.error(
         "Vendor registration error:",
@@ -384,7 +339,8 @@ function VendorRegistration() {
       )
 
       setError(
-        "Something went wrong. Please try again."
+        submitError.message ||
+          "Unable to submit vendor application. Please try again."
       )
     } finally {
       setSubmitting(false)
@@ -428,27 +384,30 @@ function VendorRegistration() {
               </h1>
 
               <p className="mt-2 max-w-2xl text-slate-600">
-                Register your waste facility and help citizens find a disposal point near them.
+                Register your waste facility and help citizens
+                find a disposal point near them.
               </p>
             </div>
           </div>
         </div>
 
         {/* =================================================
-            DEMO NOTICE
+            APPROVAL NOTICE
             ================================================= */}
 
-        <div className="mb-8 flex gap-3 rounded-2xl border border-green-100 bg-green-50 p-4">
+        <div className="mb-8 flex gap-3 rounded-2xl border border-amber-100 bg-amber-50 p-4">
           <ShieldCheck
             size={21}
-            className="mt-0.5 shrink-0 text-[#0b8f4d]"
+            className="mt-0.5 shrink-0 text-amber-600"
           />
 
-          <div className="text-sm leading-6 text-green-900">
+          <div className="text-sm leading-6 text-amber-900">
             <strong>
-              Vendor registration:
+              Vendor approval:
             </strong>{" "}
-            For now, registered vendors are immediately visible on the MRF page for testing. Admin verification and approval will be added later.
+            Your application will be reviewed by an Eco Clean
+            Hub administrator before the facility becomes
+            active.
           </div>
         </div>
 
@@ -558,18 +517,15 @@ function VendorRegistration() {
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Accurate location helps citizens find your facility.
+                Accurate location helps citizens find your
+                facility.
               </p>
 
               <div className="mt-6 space-y-5">
 
-                {/* =================================================
-                    CITY + STATE
-                    ================================================= */}
+                {/* CITY + STATE */}
 
                 <div className="grid gap-5 sm:grid-cols-2">
-
-                  {/* CITY */}
 
                   <Field
                     label="City"
@@ -580,8 +536,6 @@ function VendorRegistration() {
                     required
                     inputClassName="h-12"
                   />
-
-                  {/* STATE */}
 
                   <div>
                     <label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -614,9 +568,7 @@ function VendorRegistration() {
 
                 </div>
 
-                {/* =================================================
-                    PIN CODE
-                    ================================================= */}
+                {/* PIN CODE */}
 
                 <Field
                   label="PIN Code"
@@ -628,9 +580,7 @@ function VendorRegistration() {
                   inputClassName="h-12"
                 />
 
-                {/* =================================================
-                    ADDRESS + USE MY LOCATION
-                    ================================================= */}
+                {/* ADDRESS + LOCATION */}
 
                 <div>
 
@@ -673,7 +623,8 @@ function VendorRegistration() {
                   </div>
 
                   <p className="mt-2 text-xs text-slate-400">
-                    Use your current location to automatically fill your address, city, state and PIN code.
+                    Use your current location to automatically
+                    fill your address, city, state and PIN code.
                   </p>
 
                 </div>
@@ -700,18 +651,14 @@ function VendorRegistration() {
                 {WASTE_TYPES.map(
                   (waste) => {
                     const selected =
-                      acceptedWaste.includes(
-                        waste
-                      )
+                      acceptedWaste.includes(waste)
 
                     return (
                       <button
                         key={waste}
                         type="button"
                         onClick={() =>
-                          handleWasteToggle(
-                            waste
-                          )
+                          handleWasteToggle(waste)
                         }
                         className={`rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
                           selected
@@ -719,8 +666,7 @@ function VendorRegistration() {
                             : "border-slate-200 bg-white text-slate-600 hover:border-green-300 hover:bg-green-50"
                         }`}
                       >
-                        {selected &&
-                          "✓ "}
+                        {selected && "✓ "}
                         {waste}
                       </button>
                     )
@@ -764,12 +710,8 @@ function VendorRegistration() {
           {error && (
             <div
               className={`mt-6 rounded-xl border px-4 py-3 text-sm font-medium ${
-                error.includes(
-                  "Location detected"
-                ) ||
-                error.includes(
-                  "Location found"
-                )
+                error.includes("Location detected") ||
+                error.includes("Location found")
                   ? "border-yellow-200 bg-yellow-50 text-yellow-700"
                   : "border-red-200 bg-red-50 text-red-700"
               }`}
@@ -793,16 +735,17 @@ function VendorRegistration() {
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0b8f4d] px-7 py-4 font-semibold text-white shadow-xl shadow-green-800/20 transition hover:-translate-y-0.5 hover:bg-[#087b42] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting ? (
-                "Registering..."
+                "Submitting..."
               ) : (
                 <>
-                  Register & View on MRF
+                  Submit Application
                   <Send size={18} />
                 </>
               )}
             </button>
 
           </div>
+
         </form>
       </div>
     </main>

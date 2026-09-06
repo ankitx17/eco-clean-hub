@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import {
   Activity,
   Building2,
@@ -6,24 +7,77 @@ import {
   Users,
 } from "lucide-react"
 
+import {
+  collection,
+  getDocs,
+} from "firebase/firestore"
+
 import useAdminAuth from "../hooks/useAdminAuth"
+import { db } from "../../src/services/firebase"
 
 function Dashboard() {
-  const { user } =
-    useAdminAuth()
+  const { user } = useAdminAuth()
+
+  const [totalUsers, setTotalUsers] = useState(0)
+  const [totalVendors, setTotalVendors] = useState(0)
+  const [loadingStats, setLoadingStats] = useState(true)
+
+  useEffect(() => {
+    const loadDashboardStats = async () => {
+      try {
+        setLoadingStats(true)
+
+        /* ================================
+           TOTAL USERS
+           ================================ */
+
+        const usersSnapshot = await getDocs(
+          collection(db, "users")
+        )
+
+        setTotalUsers(usersSnapshot.size)
+
+
+        /* ================================
+           TOTAL VENDORS / FACILITIES
+           ================================
+
+           Approved vendors become facilities.
+           Therefore dashboard vendor count
+           comes from the facilities collection.
+        */
+
+        const facilitiesSnapshot = await getDocs(
+          collection(db, "facilities")
+        )
+
+        setTotalVendors(facilitiesSnapshot.size)
+
+      } catch (error) {
+        console.error(
+          "Failed to load dashboard stats:",
+          error
+        )
+      } finally {
+        setLoadingStats(false)
+      }
+    }
+
+    loadDashboardStats()
+  }, [])
 
   const stats = [
     {
       title: "Total Users",
-      value: "0",
+      value: loadingStats ? "..." : totalUsers,
       icon: Users,
       description: "Registered citizens",
     },
     {
       title: "Total Vendors",
-      value: "0",
+      value: loadingStats ? "..." : totalVendors,
       icon: Building2,
-      description: "Registered facilities",
+      description: "Approved facilities",
     },
     {
       title: "Eco-Credits",
@@ -42,6 +96,7 @@ function Dashboard() {
   return (
     <div>
       {/* Page Header */}
+
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#176b45]">
@@ -69,7 +124,9 @@ function Dashboard() {
         </div>
       </div>
 
+
       {/* Stats */}
+
       <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map(
           ({
@@ -106,9 +163,13 @@ function Dashboard() {
         )}
       </div>
 
+
       {/* Main Content */}
+
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+
         {/* Recent Activity */}
+
         <section className="rounded-3xl border border-[#dce9e1] bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -143,7 +204,9 @@ function Dashboard() {
           </div>
         </section>
 
-        {/* Pending Items */}
+
+        {/* Pending Actions */}
+
         <section className="rounded-3xl border border-[#dce9e1] bg-white p-6 shadow-sm">
           <h2 className="text-lg font-black text-[#14231a]">
             Pending Actions
@@ -154,6 +217,7 @@ function Dashboard() {
           </p>
 
           <div className="mt-6 space-y-3">
+
             <div className="flex items-center justify-between rounded-2xl bg-[#f8fbf9] p-4">
               <div>
                 <p className="text-sm font-bold text-slate-700">
@@ -169,6 +233,7 @@ function Dashboard() {
                 0
               </span>
             </div>
+
 
             <div className="flex items-center justify-between rounded-2xl bg-[#f8fbf9] p-4">
               <div>
@@ -186,6 +251,7 @@ function Dashboard() {
               </span>
             </div>
 
+
             <div className="flex items-center justify-between rounded-2xl bg-[#f8fbf9] p-4">
               <div>
                 <p className="text-sm font-bold text-slate-700">
@@ -201,8 +267,10 @@ function Dashboard() {
                 0
               </span>
             </div>
+
           </div>
         </section>
+
       </div>
     </div>
   )
