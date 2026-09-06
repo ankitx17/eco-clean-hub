@@ -4,7 +4,13 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth"
-import { auth } from "../services/firebase"
+import {
+  doc,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore"
+
+import { auth, db } from "../services/firebase"
 
 function Register() {
   const navigate = useNavigate()
@@ -12,13 +18,11 @@ function Register() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
   const handleRegister = async (e) => {
     e.preventDefault()
-
     setError("")
 
     // Basic validation
@@ -45,34 +49,62 @@ function Register() {
     try {
       setLoading(true)
 
-      // Create Firebase account
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email.trim(),
-        password
-      )
+      // Create Firebase Authentication account
+      const userCredential =
+        await createUserWithEmailAndPassword(
+          auth,
+          email.trim(),
+          password
+        )
+
+      const user = userCredential.user
 
       // Save user's name in Firebase Authentication profile
-      await updateProfile(userCredential.user, {
+      await updateProfile(user, {
         displayName: name.trim(),
       })
+
+      // Create user profile in Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        name: name.trim(),
+        email: user.email,
+        role: "citizen",
+        status: "active",
+        totalCredits: 0,
+        createdAt: serverTimestamp(),
+      })
+
+      console.log(
+        "User successfully saved to Firestore:",
+        user.uid
+      )
 
       // Registration successful
       navigate("/dashboard")
     } catch (error) {
-      console.error("Firebase Registration Error:", error)
+      console.error(
+        "Firebase Registration Error:",
+        error
+      )
 
       switch (error.code) {
         case "auth/email-already-in-use":
-          setError("An account with this email already exists.")
+          setError(
+            "An account with this email already exists."
+          )
           break
 
         case "auth/invalid-email":
-          setError("Please enter a valid email address.")
+          setError(
+            "Please enter a valid email address."
+          )
           break
 
         case "auth/weak-password":
-          setError("Password is too weak. Use at least 6 characters.")
+          setError(
+            "Password is too weak. Use at least 6 characters."
+          )
           break
 
         case "auth/operation-not-allowed":
@@ -93,10 +125,17 @@ function Register() {
           )
           break
 
+        case "permission-denied":
+          setError(
+            "Unable to save your profile. Please check Firestore permissions."
+          )
+          break
+
         default:
           setError(
             `${error.code || "Error"}: ${
-              error.message || "Unable to create account."
+              error.message ||
+              "Unable to create account."
             }`
           )
       }
@@ -106,9 +145,8 @@ function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6faf7] flex items-center justify-center px-4 py-8">
+    <div className="flex min-h-screen items-center justify-center bg-[#f6faf7] px-4 py-8">
       <div className="w-full max-w-md rounded-2xl border border-[#e1ebe4] bg-white p-8 shadow-xl">
-
         {/* Header */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#176b45] text-2xl">
@@ -125,8 +163,10 @@ function Register() {
         </div>
 
         {/* Register Form */}
-        <form onSubmit={handleRegister} className="space-y-5">
-
+        <form
+          onSubmit={handleRegister}
+          className="space-y-5"
+        >
           {/* Full Name */}
           <div>
             <label
@@ -140,7 +180,9 @@ function Register() {
               id="name"
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) =>
+                setName(e.target.value)
+              }
               placeholder="Enter your name"
               autoComplete="name"
               disabled={loading}
@@ -161,7 +203,9 @@ function Register() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
               placeholder="Enter your email"
               autoComplete="email"
               disabled={loading}
@@ -182,7 +226,9 @@ function Register() {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
               placeholder="Create a password"
               autoComplete="new-password"
               disabled={loading}
@@ -207,9 +253,10 @@ function Register() {
             disabled={loading}
             className="w-full rounded-xl bg-[#176b45] py-3 font-semibold text-white transition hover:bg-[#125a39] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Creating Account..." : "Create Account"}
+            {loading
+              ? "Creating Account..."
+              : "Create Account"}
           </button>
-
         </form>
 
         {/* Login Link */}
@@ -232,7 +279,6 @@ function Register() {
             ← Back to Home
           </Link>
         </div>
-
       </div>
     </div>
   )

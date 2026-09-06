@@ -1,6 +1,12 @@
 import { lazy, Suspense } from "react"
 import { Routes, Route } from "react-router-dom"
+
 import ProtectedRoute from "../components/common/ProtectedRoute"
+import AdminApp from "../../admin/AdminApp"
+
+// =====================================================
+// PUBLIC / CITIZEN PAGES
+// =====================================================
 
 const Home = lazy(() => import("../pages/Home"))
 const Login = lazy(() => import("../pages/Login"))
@@ -10,7 +16,9 @@ const VendorRegistration = lazy(
   () => import("../pages/VendorRegistration")
 )
 
-const Dashboard = lazy(() => import("../pages/Dashboard"))
+const Dashboard = lazy(
+  () => import("../pages/Dashboard")
+)
 
 const RedeemRewards = lazy(
   () => import("../pages/RedeemRewards")
@@ -28,9 +36,13 @@ const SubmitCleanup = lazy(
   () => import("../pages/SubmitCleanup")
 )
 
-const Scanner = lazy(() => import("../pages/Scanner"))
+const Scanner = lazy(
+  () => import("../pages/Scanner")
+)
 
-const MRF = lazy(() => import("../pages/MRF"))
+const MRF = lazy(
+  () => import("../pages/MRF")
+)
 
 const MRFRoute = lazy(
   () => import("../pages/MRFRoute")
@@ -40,15 +52,21 @@ const Verification = lazy(
   () => import("../pages/Verification")
 )
 
-const Rewards = lazy(() => import("../pages/Rewards"))
+const Rewards = lazy(
+  () => import("../pages/Rewards")
+)
 
 const Leaderboard = lazy(
   () => import("../pages/Leaderboard")
 )
 
-const Activity = lazy(() => import("../pages/Activity"))
+const Activity = lazy(
+  () => import("../pages/Activity")
+)
 
-const Profile = lazy(() => import("../pages/Profile"))
+const Profile = lazy(
+  () => import("../pages/Profile")
+)
 
 const Donation = lazy(
   () => import("../pages/Donation")
@@ -58,17 +76,23 @@ const FundingRequest = lazy(
   () => import("../pages/FundingRequest")
 )
 
-const AdminFundingRequests = lazy(
-  () => import("../pages/AdminFundingRequests")
-)
-
-/* NEW: CERTIFICATE */
+// NEW: Certificate
 const Certificate = lazy(
   () => import("../pages/Certificate")
 )
 
-const NotFound = lazy(() => import("../pages/NotFound"))
+// Existing admin funding requests page
+const AdminFundingRequests = lazy(
+  () => import("../pages/AdminFundingRequests")
+)
 
+const NotFound = lazy(
+  () => import("../pages/NotFound")
+)
+
+// =====================================================
+// ROUTE LOADER
+// =====================================================
 
 function RouteLoader() {
   return (
@@ -78,16 +102,29 @@ function RouteLoader() {
   )
 }
 
+// =====================================================
+// APP ROUTES
+// =====================================================
 
 function AppRoutes() {
   return (
     <Suspense fallback={<RouteLoader />}>
-
       <Routes>
 
         {/* =====================================================
+            ADMIN APP
+            Static import intentionally used here.
+            Do NOT convert this to lazy().
+            ===================================================== */}
+
+        <Route
+          path="/admin/*"
+          element={<AdminApp />}
+        />
+
+        {/* =====================================================
             PUBLIC ROUTES
-           ===================================================== */}
+            ===================================================== */}
 
         <Route
           path="/"
@@ -110,14 +147,9 @@ function AppRoutes() {
           element={<VendorRegistration />}
         />
 
-
         {/* =====================================================
             PUBLIC MRF ROUTES
-
-            Temporary for vendor testing.
-            Later admin system ke according
-            protection/role control add karenge.
-           ===================================================== */}
+            ===================================================== */}
 
         <Route
           path="/mrf"
@@ -129,10 +161,9 @@ function AppRoutes() {
           element={<MRFRoute />}
         />
 
-
         {/* =====================================================
             CITIZEN PROTECTED ROUTES
-           ===================================================== */}
+            ===================================================== */}
 
         <Route element={<ProtectedRoute />}>
 
@@ -181,7 +212,7 @@ function AppRoutes() {
             element={<Leaderboard />}
           />
 
-          {/* NEW: CERTIFICATE */}
+          {/* NEW: Certificate */}
           <Route
             path="/certificate"
             element={<Certificate />}
@@ -209,28 +240,24 @@ function AppRoutes() {
 
         </Route>
 
-
         {/* =====================================================
-            ADMIN ROUTES
-           ===================================================== */}
+            OLD ADMIN FUNDING REQUESTS
+            ===================================================== */}
 
         <Route
           element={
             <ProtectedRoute allowedRoles={["admin"]} />
           }
         >
-
           <Route
             path="/admin/funding-requests"
             element={<AdminFundingRequests />}
           />
-
         </Route>
-
 
         {/* =====================================================
             NOT FOUND
-           ===================================================== */}
+            ===================================================== */}
 
         <Route
           path="*"
@@ -238,10 +265,8 @@ function AppRoutes() {
         />
 
       </Routes>
-
     </Suspense>
   )
 }
-
 
 export default AppRoutes

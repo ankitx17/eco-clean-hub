@@ -5,19 +5,17 @@ import {
   BriefcaseBusiness,
   ArrowUpRight,
 } from "lucide-react"
+import { Link } from "react-router-dom"
 
 function Footer() {
   return (
     <footer className="border-t border-slate-200 bg-white px-5 py-12">
       <div className="mx-auto max-w-7xl">
-
         {/* Main Footer */}
         <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
-
           {/* Brand */}
           <div>
             <div className="flex items-center gap-3">
-
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0b8f4d] text-white shadow-lg shadow-green-700/20">
                 <Leaf size={20} />
               </div>
@@ -25,7 +23,6 @@ function Footer() {
               <div className="text-lg font-bold tracking-tight">
                 Eco<span className="text-[#0b8f4d]">Clean</span> Hub
               </div>
-
             </div>
 
             <p className="mt-5 max-w-sm text-sm leading-6 text-slate-500">
@@ -35,7 +32,6 @@ function Footer() {
 
             {/* Social / Project Links */}
             <div className="mt-5 flex gap-2">
-
               <button
                 aria-label="Project Code"
                 className="rounded-xl bg-slate-50 p-2.5 text-slate-500 transition hover:bg-green-50 hover:text-green-700"
@@ -56,7 +52,6 @@ function Footer() {
               >
                 <BriefcaseBusiness size={17} />
               </button>
-
             </div>
           </div>
 
@@ -67,7 +62,6 @@ function Footer() {
             </h3>
 
             <div className="mt-5 space-y-3 text-sm text-slate-500">
-
               <a
                 href="#features"
                 className="flex items-center gap-1 transition hover:text-green-600"
@@ -99,7 +93,6 @@ function Footer() {
                 Leaderboard
                 <ArrowUpRight size={13} />
               </a>
-
             </div>
           </div>
 
@@ -110,7 +103,6 @@ function Footer() {
             </h3>
 
             <div className="mt-5 space-y-3 text-sm text-slate-500">
-
               <a
                 href="#"
                 className="block transition hover:text-green-600"
@@ -138,7 +130,6 @@ function Footer() {
               >
                 MRF Centers
               </a>
-
             </div>
           </div>
 
@@ -149,7 +140,6 @@ function Footer() {
             </h3>
 
             <div className="mt-5 space-y-3 text-sm text-slate-500">
-
               <a
                 href="#"
                 className="block transition hover:text-green-600"
@@ -178,22 +168,27 @@ function Footer() {
                 Contact
               </a>
 
+              {/* Admin Login */}
+              <Link
+                to="/admin"
+                className="group mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[#0b8f4d] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-green-700/20 transition hover:-translate-y-0.5 hover:bg-[#087b42] hover:shadow-xl"
+              >
+                Admin
+                <ArrowUpRight
+                  size={15}
+                  className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                />
+              </Link>
             </div>
           </div>
-
         </div>
 
         {/* Bottom Footer */}
         <div className="mt-12 flex flex-col justify-between gap-4 border-t border-slate-100 pt-6 text-xs text-slate-400 sm:flex-row">
-
           <p>
             © 2026 Eco Clean Hub. Built for a cleaner tomorrow.
           </p>
-
-         
-
         </div>
-
       </div>
     </footer>
   )

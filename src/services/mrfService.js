@@ -17,7 +17,7 @@
       ↓
    Calculate distance
       ↓
-   25 km filter
+   10 KM filter
       ↓
    Nearest first
       ↓
@@ -43,9 +43,26 @@ import { db } from "./firebase"
    SEARCH SETTINGS
    ========================================================= */
 
-const SEARCH_RADIUS_METERS = 25000
-const SEARCH_RADIUS_KM = 25
-const CACHE_DURATION = 10 * 60 * 1000
+/*
+ * IMPORTANT:
+ * User requirement is ONLY facilities within 10 KM.
+ *
+ * GPS is still used internally.
+ * We are NOT removing latitude/longitude from the
+ * facility data because route/navigation needs them.
+ */
+
+const SEARCH_RADIUS_METERS = 10000
+const SEARCH_RADIUS_KM = 10
+
+const CACHE_DURATION =
+  10 * 60 * 1000
+
+/*
+ * Cache version changed so old 25 KM results
+ * are not reused.
+ */
+const CACHE_VERSION = "v4"
 
 const memoryCache = new Map()
 
@@ -53,8 +70,13 @@ const memoryCache = new Map()
    CACHE KEY
    ========================================================= */
 
-function createCacheKey(latitude, longitude) {
-  return `${latitude.toFixed(2)},${longitude.toFixed(2)}`
+function createCacheKey(
+  latitude,
+  longitude
+) {
+  return `${CACHE_VERSION}-${latitude.toFixed(
+    3
+  )},${longitude.toFixed(3)}`
 }
 
 /* =========================================================
@@ -77,8 +99,12 @@ export function calculateDistance(
 
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
+    Math.cos(
+      (lat1 * Math.PI) / 180
+    ) *
+      Math.cos(
+        (lat2 * Math.PI) / 180
+      ) *
       Math.sin(dLon / 2) ** 2
 
   const c =
@@ -95,7 +121,9 @@ export function calculateDistance(
    DISTANCE FORMAT
    ========================================================= */
 
-export function formatDistance(distance) {
+export function formatDistance(
+  distance
+) {
   if (
     typeof distance !== "number" ||
     !Number.isFinite(distance)
@@ -104,64 +132,97 @@ export function formatDistance(distance) {
   }
 
   if (distance < 1) {
-    return `${Math.round(distance * 1000)} m`
+    return `${Math.round(
+      distance * 1000
+    )} m`
   }
 
-  return `${distance.toFixed(1)} km`
+  return `${distance.toFixed(
+    1
+  )} km`
 }
 
 /* =========================================================
    MEMORY CACHE
    ========================================================= */
 
-function getMemoryCache(cacheKey) {
-  const cached = memoryCache.get(cacheKey)
+function getMemoryCache(
+  cacheKey
+) {
+  const cached =
+    memoryCache.get(cacheKey)
 
   if (!cached) {
     return null
   }
 
   const age =
-    Date.now() - cached.timestamp
+    Date.now() -
+    cached.timestamp
 
-  if (age > CACHE_DURATION) {
-    memoryCache.delete(cacheKey)
+  if (
+    age >
+    CACHE_DURATION
+  ) {
+    memoryCache.delete(
+      cacheKey
+    )
+
     return null
   }
 
   return cached.data
 }
 
-function saveMemoryCache(cacheKey, data) {
-  memoryCache.set(cacheKey, {
-    timestamp: Date.now(),
-    data,
-  })
+function saveMemoryCache(
+  cacheKey,
+  data
+) {
+  memoryCache.set(
+    cacheKey,
+    {
+      timestamp:
+        Date.now(),
+      data,
+    }
+  )
 }
 
 /* =========================================================
    LOCAL STORAGE CACHE
    ========================================================= */
 
-function getPersistentCache(cacheKey) {
+function getPersistentCache(
+  cacheKey
+) {
   try {
     const key =
       `eco-clean-facilities-${cacheKey}`
 
     const saved =
-      localStorage.getItem(key)
+      localStorage.getItem(
+        key
+      )
 
     if (!saved) {
       return null
     }
 
-    const parsed = JSON.parse(saved)
+    const parsed =
+      JSON.parse(saved)
 
     const age =
-      Date.now() - parsed.timestamp
+      Date.now() -
+      parsed.timestamp
 
-    if (age > CACHE_DURATION) {
-      localStorage.removeItem(key)
+    if (
+      age >
+      CACHE_DURATION
+    ) {
+      localStorage.removeItem(
+        key
+      )
+
       return null
     }
 
@@ -187,7 +248,8 @@ function savePersistentCache(
     localStorage.setItem(
       key,
       JSON.stringify({
-        timestamp: Date.now(),
+        timestamp:
+          Date.now(),
         data,
       })
     )
@@ -197,6 +259,26 @@ function savePersistentCache(
       error
     )
   }
+}
+
+/* =========================================================
+   VALID COORDINATES
+   ========================================================= */
+
+function hasValidCoordinates(
+  latitude,
+  longitude
+) {
+  return (
+    typeof latitude === "number" &&
+    typeof longitude === "number" &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    !(
+      latitude === 0 &&
+      longitude === 0
+    )
+  )
 }
 
 /* =========================================================
@@ -218,126 +300,178 @@ function getLocalRegisteredVendors(
       return []
     }
 
-    const parsed = JSON.parse(saved)
+    const parsed =
+      JSON.parse(saved)
 
-    if (!Array.isArray(parsed)) {
+    if (
+      !Array.isArray(parsed)
+    ) {
       return []
     }
 
     const facilities = []
 
-    parsed.forEach((vendor) => {
-      const latitude = Number(
-        vendor.latitude
-      )
+    parsed.forEach(
+      (vendor) => {
+        /*
+         * Vendor coordinates are still required
+         * internally for distance calculation
+         * and route navigation.
+         */
 
-      const longitude = Number(
-        vendor.longitude
-      )
-
-      /* Invalid coordinates */
-      if (
-        !Number.isFinite(latitude) ||
-        !Number.isFinite(longitude)
-      ) {
-        return
-      }
-
-      /* Ignore 0,0 */
-      if (
-        latitude === 0 &&
-        longitude === 0
-      ) {
-        return
-      }
-
-      const distance =
-        calculateDistance(
-          userLatitude,
-          userLongitude,
-          latitude,
-          longitude
-        )
-
-      /* 25 km filter */
-      if (distance > searchRadiusKm) {
-        return
-      }
-
-      facilities.push({
-        id:
-          vendor.id ||
-          `local-vendor-${Date.now()}`,
-
-        name:
-          vendor.businessName ||
-          vendor.name ||
-          "Registered Waste Facility",
-
-        type:
-          vendor.facilityType ||
-          vendor.type ||
-          "Recycling Centre",
-
-        address:
-          vendor.address ||
-          "Address not available",
-
-        city:
-          vendor.city ||
-          "",
-
-        state:
-          vendor.state ||
-          "",
-
-        pincode:
-          vendor.pincode ||
-          "",
-
-        acceptedWaste:
-          Array.isArray(
-            vendor.acceptedWaste
+        const latitude =
+          Number(
+            vendor.latitude
           )
-            ? vendor.acceptedWaste
-            : [],
 
-        status:
-          "Registered Vendor",
+        const longitude =
+          Number(
+            vendor.longitude
+          )
 
-        source:
-          "Eco Clean Hub Vendor Registration",
+        /* Invalid coordinates */
+        if (
+          !Number.isFinite(
+            latitude
+          ) ||
+          !Number.isFinite(
+            longitude
+          )
+        ) {
+          return
+        }
 
-        verified:
-          vendor.verified === true,
+        /* Ignore 0,0 */
+        if (
+          latitude === 0 &&
+          longitude === 0
+        ) {
+          return
+        }
 
-        latitude,
-        longitude,
+        /*
+         * Calculate distance from user's
+         * current GPS location.
+         */
+        const distance =
+          calculateDistance(
+            userLatitude,
+            userLongitude,
+            latitude,
+            longitude
+          )
 
-        distance,
+        /*
+         * ONLY vendors within 10 KM.
+         */
+        if (
+          distance >
+          searchRadiusKm
+        ) {
+          return
+        }
 
-        sourceType:
-          "registered-vendor",
+        facilities.push({
+          id:
+            vendor.id ||
+            `local-vendor-${Date.now()}-${Math.random()
+              .toString(36)
+              .slice(2, 8)}`,
 
-        locationAvailable: true,
+          name:
+            vendor.businessName ||
+            vendor.name ||
+            "Registered Waste Facility",
 
-        contactPerson:
-          vendor.contactPerson ||
-          "",
+          businessName:
+            vendor.businessName ||
+            vendor.name ||
+            "",
 
-        phone:
-          vendor.phone ||
-          "",
+          type:
+            vendor.facilityType ||
+            vendor.type ||
+            "Recycling Centre",
 
-        email:
-          vendor.email ||
-          "",
+          facilityType:
+            vendor.facilityType ||
+            vendor.type ||
+            "Recycling Centre",
 
-        description:
-          vendor.description ||
-          "",
-      })
-    })
+          address:
+            vendor.address ||
+            "Address not available",
+
+          city:
+            vendor.city ||
+            "",
+
+          state:
+            vendor.state ||
+            "",
+
+          pincode:
+            vendor.pincode ||
+            "",
+
+          acceptedWaste:
+            Array.isArray(
+              vendor.acceptedWaste
+            )
+              ? vendor.acceptedWaste
+              : [],
+
+          status:
+            "Registered Vendor",
+
+          source:
+            "Eco Clean Hub Vendor Registration",
+
+          verified:
+            vendor.verified === true,
+
+          /*
+           * KEEP COORDINATES.
+           *
+           * MRFRoute / navigation needs these.
+           */
+          latitude,
+          longitude,
+
+          distance,
+
+          sourceType:
+            "registered-vendor",
+
+          locationAvailable:
+            true,
+
+          contactPerson:
+            vendor.contactPerson ||
+            "",
+
+          phone:
+            vendor.phone ||
+            "",
+
+          email:
+            vendor.email ||
+            "",
+
+          description:
+            vendor.description ||
+            "",
+
+          createdAt:
+            vendor.createdAt ||
+            null,
+        })
+      }
+    )
+
+    console.info(
+      `Local registered vendors found: ${facilities.length}`
+    )
 
     return facilities
   } catch (error) {
@@ -374,26 +508,45 @@ async function getApprovedVendorFacilities(
       const data =
         documentSnapshot.data()
 
-      /* Only approved vendors */
+      /*
+       * Only approved vendors
+       * from Firestore.
+       */
       if (
-        data.status !== "approved"
+        data.status !==
+        "approved"
       ) {
         return
       }
 
       const latitude =
-        Number(data.latitude)
+        Number(
+          data.latitude
+        )
 
       const longitude =
-        Number(data.longitude)
+        Number(
+          data.longitude
+        )
 
+      /*
+       * Coordinates are mandatory
+       * for nearby search.
+       */
       if (
-        !Number.isFinite(latitude) ||
-        !Number.isFinite(longitude)
+        !Number.isFinite(
+          latitude
+        ) ||
+        !Number.isFinite(
+          longitude
+        )
       ) {
         return
       }
 
+      /*
+       * Ignore invalid 0,0 location.
+       */
       if (
         latitude === 0 &&
         longitude === 0
@@ -401,6 +554,10 @@ async function getApprovedVendorFacilities(
         return
       }
 
+      /*
+       * Calculate distance from
+       * user's GPS location.
+       */
       const distance =
         calculateDistance(
           userLatitude,
@@ -409,8 +566,12 @@ async function getApprovedVendorFacilities(
           longitude
         )
 
+      /*
+       * ONLY vendors within 10 KM.
+       */
       if (
-        distance > searchRadiusKm
+        distance >
+        searchRadiusKm
       ) {
         return
       }
@@ -424,7 +585,17 @@ async function getApprovedVendorFacilities(
           data.name ||
           "Approved Waste Recovery Facility",
 
+        businessName:
+          data.businessName ||
+          data.name ||
+          "",
+
         type:
+          data.facilityType ||
+          data.type ||
+          "Recycling Centre",
+
+        facilityType:
           data.facilityType ||
           data.type ||
           "Recycling Centre",
@@ -460,6 +631,9 @@ async function getApprovedVendorFacilities(
 
         verified: true,
 
+        /*
+         * KEEP COORDINATES.
+         */
         latitude,
         longitude,
 
@@ -468,7 +642,8 @@ async function getApprovedVendorFacilities(
         sourceType:
           "approved-vendor",
 
-        locationAvailable: true,
+        locationAvailable:
+          true,
 
         contactPerson:
           data.contactPerson ||
@@ -503,40 +678,21 @@ function isDuplicate(
   existing,
   candidate
 ) {
-  const existingHasCoordinates =
-    typeof existing.latitude ===
-      "number" &&
-    typeof existing.longitude ===
-      "number"
-
-  const candidateHasCoordinates =
-    typeof candidate.latitude ===
-      "number" &&
-    typeof candidate.longitude ===
-      "number"
-
-  /* Same physical location */
+  /*
+   * Same exact ID.
+   */
   if (
-    existingHasCoordinates &&
-    candidateHasCoordinates
+    existing.id &&
+    candidate.id &&
+    existing.id ===
+      candidate.id
   ) {
-    const distance =
-      calculateDistance(
-        existing.latitude,
-        existing.longitude,
-        candidate.latitude,
-        candidate.longitude
-      )
-
-    /*
-     * 150 metres
-     */
-    if (distance < 0.15) {
-      return true
-    }
+    return true
   }
 
-  /* Same facility name */
+  /*
+   * Same facility name.
+   */
   const existingName =
     existing.name
       ?.toLowerCase()
@@ -550,9 +706,50 @@ function isDuplicate(
   if (
     existingName &&
     candidateName &&
-    existingName === candidateName
+    existingName ===
+      candidateName
   ) {
     return true
+  }
+
+  /*
+   * Same physical location.
+   *
+   * Keep vendor and verified facilities
+   * separate if they have different names.
+   */
+  const existingHasCoordinates =
+    hasValidCoordinates(
+      existing.latitude,
+      existing.longitude
+    )
+
+  const candidateHasCoordinates =
+    hasValidCoordinates(
+      candidate.latitude,
+      candidate.longitude
+    )
+
+  if (
+    existingHasCoordinates &&
+    candidateHasCoordinates
+  ) {
+    const distance =
+      calculateDistance(
+        existing.latitude,
+        existing.longitude,
+        candidate.latitude,
+        candidate.longitude
+      )
+
+    /*
+     * 150 metres.
+     */
+    if (
+      distance < 0.15
+    ) {
+      return true
+    }
   }
 
   return false
@@ -577,7 +774,9 @@ function combineFacilities(
 
   const unique = []
 
-  for (const facility of combined) {
+  for (
+    const facility of combined
+  ) {
     const duplicate =
       unique.some(
         (existing) =>
@@ -588,7 +787,9 @@ function combineFacilities(
       )
 
     if (!duplicate) {
-      unique.push(facility)
+      unique.push(
+        facility
+      )
     }
   }
 
@@ -606,13 +807,13 @@ function sortFacilities(
     (a, b) => {
       const aDistance =
         typeof a.distance ===
-          "number"
+        "number"
           ? a.distance
           : Infinity
 
       const bDistance =
         typeof b.distance ===
-          "number"
+        "number"
           ? b.distance
           : Infinity
 
@@ -632,6 +833,13 @@ function processFacilities(
   facilities,
   limit
 ) {
+  /*
+   * Final safety filter.
+   *
+   * Even if any source accidentally returns
+   * something outside the radius, it will NOT
+   * reach the MRF page.
+   */
   const nearbyFacilities =
     facilities.filter(
       (facility) =>
@@ -646,7 +854,10 @@ function processFacilities(
 
   return sortFacilities(
     nearbyFacilities
-  ).slice(0, limit)
+  ).slice(
+    0,
+    limit
+  )
 }
 
 /* =========================================================
@@ -693,11 +904,11 @@ export async function getNearbyFacilities(
      LOCAL VENDORS FIRST
      
      IMPORTANT:
-     We read local vendors BEFORE cache.
-     
-     This means newly registered vendors
-     appear immediately even if an old
-     facility result is cached.
+     We check local vendors BEFORE cache.
+
+     So if user registers a vendor,
+     it can appear immediately without waiting
+     for the 10-minute facility cache.
      ======================================================= */
 
   const localVendorFacilities =
@@ -725,6 +936,10 @@ export async function getNearbyFacilities(
       "Facility data loaded from memory cache."
     )
 
+    /*
+     * Merge cached MRF/OSM/Firestore data
+     * with current local vendors.
+     */
     const mergedCachedResults =
       combineFacilities(
         memoryCached,
@@ -753,6 +968,10 @@ export async function getNearbyFacilities(
       "Facility data loaded from browser cache."
     )
 
+    /*
+     * Merge current local vendors
+     * with cached facilities.
+     */
     const mergedCachedResults =
       combineFacilities(
         persistentCached,
@@ -863,7 +1082,7 @@ export async function getNearbyFacilities(
     )
 
   /* =======================================================
-     FINAL RESULTS
+     FINAL 10 KM FILTER
      ======================================================= */
 
   const results =
@@ -877,22 +1096,26 @@ export async function getNearbyFacilities(
      ======================================================= */
 
   console.info(
-    `Final nearby facilities: ${results.length}`
+    `Final nearby facilities within 10 KM: ${results.length}`
   )
 
   results.forEach(
     (facility, index) => {
       console.info(
-        `${index + 1}. ${facility.name} | ${facility.type} | ${formatDistance(facility.distance)} | ${facility.sourceType}`
+        `${index + 1}. ${facility.name} | ${facility.type} | ${formatDistance(
+          facility.distance
+        )} | ${facility.sourceType}`
       )
     }
   )
 
   /* =======================================================
-     CACHE
+     CACHE RESULTS
      ======================================================= */
 
-  if (results.length > 0) {
+  if (
+    results.length > 0
+  ) {
     saveMemoryCache(
       cacheKey,
       results
