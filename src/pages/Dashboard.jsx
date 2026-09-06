@@ -1,3 +1,5 @@
+import marketplaceImage from "../assets/eco-marketplace.png"
+
 import {
   ArrowRight,
   Camera,
@@ -116,56 +118,62 @@ function Dashboard() {
           </div>
         </section>
 
+                {/* =====================================================
+            MISSION, SCAN, DONATION & FUNDING ACTIONS
+           ===================================================== */}
 
-        {/* MISSION, SCAN, DONATION & FUNDING ACTIONS */}
         <section className="mb-7 grid gap-4 sm:mb-8 sm:grid-cols-2">
 
           {/* START A MISSION */}
           <Link
             to="/missions"
-            className="group relative h-[150px] overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
-          >
+              className="group relative h-[170px] overflow-hidden rounded-3xl border border-[#4cae72] bg-gradient-to-br from-[#b8e8c9] via-[#9dd9b5] to-[#7fc79d] p-5 text-[#123d2b] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"          >
 
-            <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
+            {/* Decorative shapes */}
+            <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-[#176b45]/10 transition-transform duration-500 group-hover:scale-110" />
 
+            <div className="pointer-events-none absolute -bottom-14 -right-2 h-28 w-28 rounded-full bg-[#42a96d]/10" />
 
             <div className="relative flex h-full items-center justify-between">
 
-              <div className="flex items-center gap-4">
+              <div className="flex min-w-0 items-center gap-4">
 
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#176b45] shadow-sm transition duration-300 group-hover:scale-105">
-                  <Leaf size={26} />
+                {/* ICON */}
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white text-[#176b45] shadow-md transition duration-300 group-hover:scale-105">
+                  <Leaf size={30} />
                 </div>
 
+                <div className="min-w-0">
 
-                <div>
+                  <div className="flex items-center gap-2">
 
-                  <h3 className="text-lg font-extrabold text-white">
-                    Start a Mission
-                  </h3>
+                    <h3 className="text-lg font-extrabold text-[#123d2b] sm:text-xl">
+                      Start a Mission
+                    </h3>
 
-                  <p className="mt-1 text-sm text-green-50">
+                  </div>
+
+                  <p className="mt-1 max-w-md text-sm leading-5 text-slate-600">
                     Take part in eco-friendly activities and earn Eco-Credits
                   </p>
 
-
-                  <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#176b45] px-4 py-2 text-xs font-bold text-white shadow-sm transition group-hover:bg-[#125a39]">
                     Make an Impact
-                    <ArrowRight size={13} />
+                    <ArrowRight size={14} />
                   </div>
 
                 </div>
 
               </div>
 
-
-              <div className="ml-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-white group-hover:text-[#176b45]">
-
-                <ArrowRight
-                  size={20}
-                  className="transition group-hover:translate-x-1"
-                />
-
+              {/* RIGHT VISUAL */}
+              <div className="ml-3 hidden h-24 w-24 shrink-0 items-center justify-center rounded-full bg-white/50 sm:flex">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#176b45]/10">
+                  <Leaf
+                    size={38}
+                    className="text-[#176b45] transition duration-500 group-hover:rotate-6 group-hover:scale-110"
+                  />
+                </div>
               </div>
 
             </div>
@@ -176,50 +184,48 @@ function Dashboard() {
           {/* SCAN WASTE */}
           <Link
             to="/scanner"
-            className="group relative h-[150px] overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
-          >
+              className="group relative h-[170px] overflow-hidden rounded-3xl border border-[#8fb5df] bg-gradient-to-br from-[#c3dafa] via-[#a8c8ed] to-[#8fb4dc] p-5 text-[#18324f] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"          >
 
-            <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
+            <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-blue-500/10 transition-transform duration-500 group-hover:scale-110" />
 
+            <div className="pointer-events-none absolute -bottom-14 -right-2 h-28 w-28 rounded-full bg-blue-400/10" />
 
             <div className="relative flex h-full items-center justify-between">
 
-              <div className="flex items-center gap-4">
+              <div className="flex min-w-0 items-center gap-4">
 
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#176b45] shadow-sm transition duration-300 group-hover:scale-105">
-                  <Camera size={26} />
+                {/* ICON */}
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white text-blue-600 shadow-md transition duration-300 group-hover:scale-105">
+                  <Camera size={30} />
                 </div>
 
+                <div className="min-w-0">
 
-                <div>
-
-                  <h3 className="text-lg font-extrabold text-white">
+                  <h3 className="text-lg font-extrabold text-[#18324f] sm:text-xl">
                     Scan Waste
                   </h3>
 
-
-                  <p className="mt-1 text-sm text-green-50">
+                  <p className="mt-1 max-w-md text-sm leading-5 text-slate-600">
                     Identify your waste with AI
                   </p>
 
-
-                  <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition group-hover:bg-blue-700">
                     Scan & Identify
-                    <ArrowRight size={13} />
+                    <ArrowRight size={14} />
                   </div>
 
                 </div>
 
               </div>
 
-
-              <div className="ml-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-white group-hover:text-[#176b45]">
-
-                <ArrowRight
-                  size={20}
-                  className="transition group-hover:translate-x-1"
-                />
-
+              {/* RIGHT VISUAL */}
+              <div className="ml-3 hidden h-24 w-24 shrink-0 items-center justify-center rounded-full bg-white/55 sm:flex">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10">
+                  <Camera
+                    size={36}
+                    className="text-blue-600 transition duration-500 group-hover:scale-110"
+                  />
+                </div>
               </div>
 
             </div>
@@ -230,52 +236,48 @@ function Dashboard() {
           {/* DONATION & GREEN FUND */}
           <Link
             to="/donation"
-            className="group relative h-[150px] overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
-          >
+            className="group relative h-[170px] overflow-hidden rounded-3xl border border-[#e3a39d] bg-gradient-to-br from-[#f6cbc6] via-[#edb3ad] to-[#df9690] p-5 text-[#4a2522] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"          >
 
-            <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
+            <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-red-400/10 transition-transform duration-500 group-hover:scale-110" />
 
-            <div className="pointer-events-none absolute -bottom-12 -left-8 h-28 w-28 rounded-full bg-white/10" />
-
+            <div className="pointer-events-none absolute -bottom-14 -left-5 h-28 w-28 rounded-full bg-red-400/10" />
 
             <div className="relative flex h-full items-center justify-between">
 
-              <div className="flex items-center gap-4">
+              <div className="flex min-w-0 items-center gap-4">
 
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#176b45] shadow-sm transition duration-300 group-hover:scale-105">
-                  <Gift size={26} />
+                {/* ICON */}
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white text-red-600 shadow-md transition duration-300 group-hover:scale-105">
+                  <Gift size={30} />
                 </div>
 
+                <div className="min-w-0">
 
-                <div>
-
-                  <h3 className="text-lg font-extrabold text-white">
+                  <h3 className="text-lg font-extrabold text-[#4a2522] sm:text-xl">
                     Donation & Green Fund
                   </h3>
 
-
-                  <p className="mt-1 text-sm text-green-50">
+                  <p className="mt-1 max-w-md text-sm leading-5 text-slate-600">
                     Support trees, cleanups and greener communities
                   </p>
 
-
-                  <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition group-hover:bg-red-700">
                     Make a Contribution
-                    <ArrowRight size={13} />
+                    <ArrowRight size={14} />
                   </div>
 
                 </div>
 
               </div>
 
-
-              <div className="ml-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-white group-hover:text-[#176b45]">
-
-                <ArrowRight
-                  size={20}
-                  className="transition group-hover:translate-x-1"
-                />
-
+              {/* RIGHT VISUAL */}
+              <div className="ml-3 hidden h-24 w-24 shrink-0 items-center justify-center rounded-full bg-white/55 sm:flex">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
+                  <Gift
+                    size={36}
+                    className="text-red-600 transition duration-500 group-hover:scale-110"
+                  />
+                </div>
               </div>
 
             </div>
@@ -286,53 +288,49 @@ function Dashboard() {
           {/* REQUEST GREEN FUND */}
           <Link
             to="/funding-request"
-            className="group relative h-[150px] overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#176b45] via-[#138a50] to-[#0d5d3b] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
-          >
+              className="group relative h-[170px] overflow-hidden rounded-3xl border border-[#b9a0d8] bg-gradient-to-br from-[#decaf0] via-[#cdb4e5] to-[#b99bd4] p-5 text-[#302347] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"          >
 
-            <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10" />
+            <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-purple-500/10 transition-transform duration-500 group-hover:scale-110" />
 
-            <div className="pointer-events-none absolute -bottom-12 -left-8 h-28 w-28 rounded-full bg-white/10" />
-
+            <div className="pointer-events-none absolute -bottom-14 -left-5 h-28 w-28 rounded-full bg-purple-400/10" />
 
             <div className="relative flex h-full items-center justify-between">
 
               <div className="flex min-w-0 items-center gap-4">
 
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-[#176b45] shadow-sm transition duration-300 group-hover:scale-105">
-                  <FileText size={26} />
+                {/* ICON */}
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white text-purple-600 shadow-md transition duration-300 group-hover:scale-105">
+                  <FileText size={30} />
                 </div>
 
+                <div className="min-w-0">
 
-                <div className="min-w-0">                                        
-
-                  <h3 className="text-lg font-extrabold text-white">
+                  <h3 className="text-lg font-extrabold text-[#302347] sm:text-xl">
                     Request Green Fund
                   </h3>
 
-
-                  <p className="mt-1 text-sm text-green-50">
+                  <p className="mt-1 max-w-md text-sm leading-5 text-slate-600">
                     Apply for funding for cleanup, plantation, recycling and
                     other environmental projects.
                   </p>
 
-
-                  <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition group-hover:bg-purple-700">
                     Submit Funding Request
-                    <ArrowRight size={13} />
+                    <ArrowRight size={14} />
                   </div>
 
                 </div>
 
               </div>
 
-
-              <div className="ml-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-white group-hover:text-[#176b45]">
-
-                <ArrowRight
-                  size={20}
-                  className="transition group-hover:translate-x-1"
-                />
-
+              {/* RIGHT VISUAL */}
+              <div className="ml-3 hidden h-24 w-24 shrink-0 items-center justify-center rounded-full bg-white/55 sm:flex">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-purple-500/10">
+                  <FileText
+                    size={36}
+                    className="text-purple-600 transition duration-500 group-hover:scale-110"
+                  />
+                </div>
               </div>
 
             </div>
@@ -340,6 +338,7 @@ function Dashboard() {
           </Link>
 
         </section>
+
 
 
         {/* STATS */}
@@ -403,6 +402,7 @@ function Dashboard() {
                 </div>
 
               </div>
+              
 
             </Link>
 
