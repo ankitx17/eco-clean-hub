@@ -2,7 +2,15 @@ import { lazy, Suspense } from "react"
 import { Routes, Route } from "react-router-dom"
 
 import ProtectedRoute from "../components/common/ProtectedRoute"
-import AdminApp from "../../admin/AdminApp"
+
+// =====================================================
+// ADMIN APP
+// Lazy-loaded so admin code is NOT included in initial bundle
+// =====================================================
+
+const AdminApp = lazy(
+  () => import("../../admin/AdminApp")
+)
 
 // =====================================================
 // PUBLIC / CITIZEN PAGES
@@ -118,8 +126,7 @@ function AppRoutes() {
 
         {/* =====================================================
             ADMIN APP
-            Static import intentionally used here.
-            Do NOT convert this to lazy().
+            Lazy-loaded for better initial bundle performance.
             ===================================================== */}
 
         <Route

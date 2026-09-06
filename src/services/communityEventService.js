@@ -1,9 +1,25 @@
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
+} from "firebase/firestore"
+
+import { db, auth } from "./firebase"
+
+const COMMUNITY_EVENTS_COLLECTION = "communityEvents"
+
 const COMMUNITY_EVENTS_STORAGE_KEY =
   "eco_clean_hub_community_events"
 
 const COMMUNITY_EVENTS_UPDATED_EVENT =
   "eco-clean-hub-community-events-updated"
-
 
 function createId(prefix = "event") {
   return `${prefix}-${Date.now()}-${Math.random()
@@ -11,178 +27,404 @@ function createId(prefix = "event") {
     .slice(2, 9)}`
 }
 
-
-function getStoredEvents() {
-  if (typeof window === "undefined") {
-    return []
+function timestampToValue(value) {
+  if (!value) {
+    return ""
   }
 
-  try {
-    const saved = localStorage.getItem(
-      COMMUNITY_EVENTS_STORAGE_KEY
-    )
-
-    if (!saved) {
-      return []
-    }
-
-    const parsed = JSON.parse(saved)
-
-    return Array.isArray(parsed) ? parsed : []
-  } catch (error) {
-    console.error(
-      "Unable to load community events:",
-      error
-    )
-
-    return []
+  if (
+    typeof value === "object" &&
+    typeof value.toDate === "function"
+  ) {
+    return value.toDate().toISOString()
   }
+
+  if (value instanceof Date) {
+    return value.toISOString()
+  }
+
+  return String(value)
 }
 
-
-function saveEvents(events) {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  try {
-    localStorage.setItem(
-      COMMUNITY_EVENTS_STORAGE_KEY,
-      JSON.stringify(events)
-    )
-
-    window.dispatchEvent(
-      new Event(COMMUNITY_EVENTS_UPDATED_EVENT)
-    )
-  } catch (error) {
-    console.error(
-      "Unable to save community events:",
-      error
-    )
-
-    throw new Error(
-      "Unable to save community event data."
-    )
-  }
-}
-
-
-function normalizeEvent(event) {
-  const registrations = Array.isArray(
-    event?.registrations
-  )
-    ? event.registrations
-    : []
+function normalizeRegistration(registration) {
+  const item = registration || {}
 
   return {
     id:
-      event?.id ||
-      createId("community-event"),
+      String(
+        item.id || createId("event-registration")
+      ).trim(),
+
+    eventId:
+      String(item.eventId || "").trim(),
+
+    userUid:
+      String(
+        item.userUid ||
+          item.userId ||
+          ""
+      ).trim(),
+
+    userName:
+      String(
+        item.userName ||
+          item.name ||
+          "Eco Citizen"
+      ).trim(),
+
+    email:
+      String(
+        item.email ||
+          item.userEmail ||
+          ""
+      ).trim(),
+
+    userEmail:
+      String(
+        item.userEmail ||
+          item.email ||
+          ""
+      ).trim(),
+
+    phone:
+      String(
+        item.phone ||
+          item.phoneNumber ||
+          ""
+      ).trim(),
+
+    status:
+      ["approved", "rejected", "pending", "verified"]
+        .includes(
+          String(item.status || "")
+            .trim()
+            .toLowerCase()
+        )
+        ? String(item.status)
+            .trim()
+            .toLowerCase()
+        : "pending",
+
+    registeredAt:
+      timestampToValue(item.registeredAt) ||
+      new Date().toISOString(),
+
+    verifiedAt:
+      timestampToValue(item.verifiedAt) || null,
+
+    verifiedBy:
+      String(
+        item.verifiedBy || ""
+      ).trim(),
+
+    adminNote:
+      String(
+        item.adminNote || ""
+      ).trim(),
+
+    attendanceStatus:
+      String(
+        item.attendanceStatus || "pending"
+      ).trim().toLowerCase(),
+
+    rewardStatus:
+      String(
+        item.rewardStatus || "pending"
+      ).trim().toLowerCase(),
+
+    rewardDistributedAt:
+      timestampToValue(
+        item.rewardDistributedAt
+      ) || null,
+
+    rewardDistributedBy:
+      String(
+        item.rewardDistributedBy || ""
+      ).trim(),
+  }
+}
+
+function normalizeEvent(event, id = "") {
+  const item = event || {}
+
+  const registrations = Array.isArray(
+    item.registrations
+  )
+    ? item.registrations.map(
+        normalizeRegistration
+      )
+    : []
+
+  const eventDate = String(
+    item.eventDate ||
+      item.date ||
+      ""
+  ).trim()
+
+  const startTime = String(
+    item.startTime || ""
+  ).trim()
+
+  const endTime = String(
+    item.endTime || ""
+  ).trim()
+
+  const maxParticipants = Number(
+    item.maxParticipants
+  )
+
+  const normalizedMaxParticipants =
+    Number.isFinite(maxParticipants)
+      ? Math.max(
+          0,
+          maxParticipants
+        )
+      : 0
+
+  const statusValue = String(
+    item.status || "pending"
+  )
+    .trim()
+    .toLowerCase()
+
+  const allowedStatuses = [
+    "pending",
+    "approved",
+    "rejected",
+    "upcoming",
+    "ongoing",
+    "completed",
+    "cancelled",
+  ]
+
+  const status = allowedStatuses.includes(
+    statusValue
+  )
+    ? statusValue
+    : "pending"
+
+  const createdAt =
+    timestampToValue(
+      item.createdAt
+    ) || new Date().toISOString()
+
+  const updatedAt =
+    timestampToValue(
+      item.updatedAt
+    ) || createdAt
+
+  return {
+    id:
+      String(
+        item.id || id || ""
+      ).trim(),
 
     title:
-      String(event?.title || "").trim(),
+      String(
+        item.title || ""
+      ).trim(),
 
     description:
-      String(event?.description || "").trim(),
+      String(
+        item.description || ""
+      ).trim(),
 
     category:
-      String(event?.category || "Community Cleanup").trim(),
+      String(
+        item.category ||
+          "Community Cleanup"
+      ).trim(),
 
     location:
-      String(event?.location || "").trim(),
+      String(
+        item.location || ""
+      ).trim(),
 
-    eventDate:
-      String(event?.eventDate || "").trim(),
+    eventDate,
 
-    startTime:
-      String(event?.startTime || "").trim(),
+    date: eventDate,
 
-    endTime:
-      String(event?.endTime || "").trim(),
+    startTime,
+
+    endTime,
 
     organizerName:
       String(
-        event?.organizerName ||
-          "Eco Clean Hub"
+        item.organizerName ||
+          item.creatorName ||
+          "Eco Citizen"
       ).trim(),
 
     organizerUid:
-      String(event?.organizerUid || "").trim(),
+      String(
+        item.organizerUid ||
+          item.creatorUid ||
+          item.userId ||
+          ""
+      ).trim(),
+
+    organizerEmail:
+      String(
+        item.organizerEmail ||
+          item.creatorEmail ||
+          ""
+      ).trim(),
+
+    organizerPhone:
+      String(
+        item.organizerPhone ||
+          item.creatorPhone ||
+          ""
+      ).trim(),
 
     imageUrl:
-      String(event?.imageUrl || "").trim(),
+      String(
+        item.imageUrl || ""
+      ).trim(),
+
+    purpose:
+      String(
+        item.purpose || ""
+      ).trim(),
+
+    whatsappGroup:
+      String(
+        item.whatsappGroup || ""
+      ).trim(),
+
+    registrationEmail:
+      String(
+        item.registrationEmail || ""
+      ).trim(),
+
+    contactNumber:
+      String(
+        item.contactNumber ||
+          item.organizerPhone ||
+          ""
+      ).trim(),
 
     maxParticipants:
+      normalizedMaxParticipants,
+
+    requiredVolunteers:
       Number.isFinite(
-        Number(event?.maxParticipants)
+        Number(
+          item.requiredVolunteers
+        )
       )
         ? Math.max(
             0,
-            Number(event.maxParticipants)
+            Number(
+              item.requiredVolunteers
+            )
           )
         : 0,
 
-    status:
-      event?.status === "cancelled"
-        ? "cancelled"
-        : event?.status === "completed"
-          ? "completed"
-          : "upcoming",
+    whatToBring:
+      String(
+        item.whatToBring || ""
+      ).trim(),
+
+    safetyInstructions:
+      String(
+        item.safetyInstructions || ""
+      ).trim(),
+
+    rewardConfig:
+      item.rewardConfig &&
+      typeof item.rewardConfig ===
+        "object"
+        ? item.rewardConfig
+        : {
+            types: [],
+            details: "",
+          },
 
     registrations,
 
     registrationCount:
       registrations.length,
 
-    createdAt:
-      event?.createdAt ||
-      new Date().toISOString(),
+    registeredCount:
+      registrations.length,
 
-    updatedAt:
-      event?.updatedAt ||
-      new Date().toISOString(),
+    approvedRegistrationCount:
+      registrations.filter(
+        (registration) =>
+          registration.status ===
+            "approved" ||
+          registration.status ===
+            "verified"
+      ).length,
+
+    status,
+
+    rejectionReason:
+      String(
+        item.rejectionReason || ""
+      ).trim(),
+
+    adminNote:
+      String(
+        item.adminNote || ""
+      ).trim(),
+
+    createdBy:
+      String(
+        item.createdBy ||
+          item.organizerUid ||
+          ""
+      ).trim(),
+
+    createdAt,
+
+    updatedAt,
   }
 }
 
-
-export function getCommunityEvents() {
-  return getStoredEvents()
-    .map(normalizeEvent)
-    .sort(
-      (a, b) =>
-        new Date(a.eventDate || a.createdAt) -
-        new Date(b.eventDate || b.createdAt)
+function dispatchUpdate() {
+  if (
+    typeof window !== "undefined"
+  ) {
+    window.dispatchEvent(
+      new Event(
+        COMMUNITY_EVENTS_UPDATED_EVENT
+      )
     )
+  }
 }
 
+function ensureAuthenticated() {
+  const user = auth.currentUser
 
-export function getCommunityEventById(eventId) {
-  if (!eventId) {
-    return null
+  if (!user) {
+    throw new Error(
+      "You must be logged in to perform this action."
+    )
   }
 
-  const event = getStoredEvents().find(
-    (item) => item?.id === eventId
-  )
-
-  return event
-    ? normalizeEvent(event)
-    : null
+  return user
 }
 
+function validateEventData(eventData) {
+  const title = String(
+    eventData?.title || ""
+  ).trim()
 
-export function createCommunityEvent(eventData) {
-  const title =
-    String(eventData?.title || "").trim()
+  const description = String(
+    eventData?.description || ""
+  ).trim()
 
-  const description =
-    String(eventData?.description || "").trim()
+  const location = String(
+    eventData?.location || ""
+  ).trim()
 
-  const location =
-    String(eventData?.location || "").trim()
-
-  const eventDate =
-    String(eventData?.eventDate || "").trim()
+  const eventDate = String(
+    eventData?.eventDate ||
+      eventData?.date ||
+      ""
+  ).trim()
 
   if (!title) {
     throw new Error(
@@ -208,42 +450,369 @@ export function createCommunityEvent(eventData) {
     )
   }
 
-  const now = new Date().toISOString()
+  return {
+    title,
+    description,
+    location,
+    eventDate,
+  }
+}
 
-  const newEvent = normalizeEvent({
-    ...eventData,
+function buildEventPayload(
+  eventData,
+  user,
+  existingEvent = null
+) {
+  const {
+    title,
+    description,
+    location,
+    eventDate,
+  } = validateEventData(eventData)
 
-    id: createId("community-event"),
+  const organizerName = String(
+    eventData?.organizerName ||
+      existingEvent?.organizerName ||
+      user?.displayName ||
+      "Eco Citizen"
+  ).trim()
 
+  const organizerUid =
+    String(
+      eventData?.organizerUid ||
+        existingEvent?.organizerUid ||
+        user?.uid ||
+        ""
+    ).trim()
+
+  const organizerEmail =
+    String(
+      eventData?.organizerEmail ||
+        existingEvent?.organizerEmail ||
+        user?.email ||
+        ""
+    ).trim()
+
+  const organizerPhone =
+    String(
+      eventData?.organizerPhone ||
+        eventData?.contactNumber ||
+        existingEvent?.organizerPhone ||
+        ""
+    ).trim()
+
+  const maxParticipants = Number(
+    eventData?.maxParticipants
+  )
+
+  const requiredVolunteers = Number(
+    eventData?.requiredVolunteers
+  )
+
+  return {
     title,
 
     description,
+
+    category:
+      String(
+        eventData?.category ||
+          existingEvent?.category ||
+          "Community Cleanup"
+      ).trim(),
 
     location,
 
     eventDate,
 
-    createdAt: now,
+    startTime:
+      String(
+        eventData?.startTime ||
+          existingEvent?.startTime ||
+          ""
+      ).trim(),
 
-    updatedAt: now,
+    endTime:
+      String(
+        eventData?.endTime ||
+          existingEvent?.endTime ||
+          ""
+      ).trim(),
 
-    registrations: [],
+    organizerName,
 
-    status: "upcoming",
-  })
+    organizerUid,
 
-  const events = getStoredEvents()
+    organizerEmail,
 
-  saveEvents([
-    ...events,
-    newEvent,
-  ])
+    organizerPhone,
 
-  return newEvent
+    imageUrl:
+      String(
+        eventData?.imageUrl ||
+          existingEvent?.imageUrl ||
+          ""
+      ).trim(),
+
+    purpose:
+      String(
+        eventData?.purpose ||
+          existingEvent?.purpose ||
+          ""
+      ).trim(),
+
+    whatsappGroup:
+      String(
+        eventData?.whatsappGroup ||
+          existingEvent?.whatsappGroup ||
+          ""
+      ).trim(),
+
+    registrationEmail:
+      String(
+        eventData?.registrationEmail ||
+          existingEvent?.registrationEmail ||
+          ""
+      ).trim(),
+
+    contactNumber:
+      organizerPhone,
+
+    maxParticipants:
+      Number.isFinite(
+        maxParticipants
+      )
+        ? Math.max(
+            0,
+            maxParticipants
+          )
+        : 0,
+
+    requiredVolunteers:
+      Number.isFinite(
+        requiredVolunteers
+      )
+        ? Math.max(
+            0,
+            requiredVolunteers
+          )
+        : 0,
+
+    whatToBring:
+      String(
+        eventData?.whatToBring ||
+          existingEvent?.whatToBring ||
+          ""
+      ).trim(),
+
+    safetyInstructions:
+      String(
+        eventData?.safetyInstructions ||
+          existingEvent?.safetyInstructions ||
+          ""
+      ).trim(),
+
+    rewardConfig:
+      eventData?.rewardConfig &&
+      typeof eventData.rewardConfig ===
+        "object"
+        ? eventData.rewardConfig
+        : existingEvent?.rewardConfig ||
+          {
+            types: [],
+            details: "",
+          },
+
+    registrations:
+      Array.isArray(
+        existingEvent?.registrations
+      )
+        ? existingEvent.registrations
+        : [],
+  }
 }
 
+export async function getCommunityEvents(
+  options = {}
+) {
+  try {
+    const includePending =
+      options?.includePending === true
 
-export function updateCommunityEvent(
+    const eventsSnapshot =
+      await getDocs(
+        collection(
+          db,
+          COMMUNITY_EVENTS_COLLECTION
+        )
+      )
+
+    const events =
+      eventsSnapshot.docs.map(
+        (documentSnapshot) =>
+          normalizeEvent(
+            {
+              ...documentSnapshot.data(),
+              id: documentSnapshot.id,
+            },
+            documentSnapshot.id
+          )
+      )
+
+    const filteredEvents =
+      includePending
+        ? events
+        : events.filter(
+            (event) =>
+              event.status ===
+                "approved" ||
+              event.status ===
+                "upcoming" ||
+              event.status ===
+                "ongoing" ||
+              event.status ===
+                "completed" ||
+              event.status ===
+                "cancelled"
+          )
+
+    return filteredEvents.sort(
+      (a, b) =>
+        new Date(
+          a.eventDate ||
+            a.createdAt
+        ) -
+        new Date(
+          b.eventDate ||
+            b.createdAt
+        )
+    )
+  } catch (error) {
+    console.error(
+      "Unable to load community events:",
+      error
+    )
+
+    throw new Error(
+      "Unable to load community events."
+    )
+  }
+}
+
+export async function getCommunityEventById(
+  eventId
+) {
+  if (!eventId) {
+    return null
+  }
+
+  try {
+    const documentSnapshot =
+      await getDoc(
+        doc(
+          db,
+          COMMUNITY_EVENTS_COLLECTION,
+          eventId
+        )
+      )
+
+    if (
+      !documentSnapshot.exists()
+    ) {
+      return null
+    }
+
+    return normalizeEvent(
+      {
+        ...documentSnapshot.data(),
+        id: documentSnapshot.id,
+      },
+      documentSnapshot.id
+    )
+  } catch (error) {
+    console.error(
+      "Unable to load community event:",
+      error
+    )
+
+    throw new Error(
+      "Unable to load community event."
+    )
+  }
+}
+
+export async function createCommunityEvent(
+  eventData
+) {
+  const user =
+    ensureAuthenticated()
+
+  const payload =
+    buildEventPayload(
+      eventData,
+      user
+    )
+
+  const eventDocument = {
+    ...payload,
+
+    status:
+      eventData?.status ||
+      "pending",
+
+    createdBy:
+      user.uid,
+
+    createdAt:
+      serverTimestamp(),
+
+    updatedAt:
+      serverTimestamp(),
+
+    rejectionReason:
+      "",
+
+    adminNote:
+      "",
+  }
+
+  try {
+    const documentReference =
+      await addDoc(
+        collection(
+          db,
+          COMMUNITY_EVENTS_COLLECTION
+        ),
+        eventDocument
+      )
+
+    dispatchUpdate()
+
+    return normalizeEvent(
+      {
+        ...eventDocument,
+        id: documentReference.id,
+        createdAt:
+          new Date().toISOString(),
+        updatedAt:
+          new Date().toISOString(),
+      },
+      documentReference.id
+    )
+  } catch (error) {
+    console.error(
+      "Unable to create community event:",
+      error
+    )
+
+    throw new Error(
+      error?.message ||
+        "Unable to create community event."
+    )
+  }
+}
+
+export async function updateCommunityEvent(
   eventId,
   updates
 ) {
@@ -253,49 +822,63 @@ export function updateCommunityEvent(
     )
   }
 
-  const events = getStoredEvents()
+  const user =
+    ensureAuthenticated()
 
-  const index = events.findIndex(
-    (event) => event?.id === eventId
-  )
+  const existingEvent =
+    await getCommunityEventById(
+      eventId
+    )
 
-  if (index === -1) {
+  if (!existingEvent) {
     throw new Error(
       "Community event was not found."
     )
   }
 
-  const currentEvent =
-    normalizeEvent(events[index])
+  const payload =
+    buildEventPayload(
+      updates,
+      user,
+      existingEvent
+    )
 
-  const updatedEvent =
-    normalizeEvent({
-      ...currentEvent,
-      ...updates,
+  try {
+    await updateDoc(
+      doc(
+        db,
+        COMMUNITY_EVENTS_COLLECTION,
+        eventId
+      ),
+      {
+        ...payload,
+        updatedAt:
+          serverTimestamp(),
+      }
+    )
 
-      id: currentEvent.id,
+    dispatchUpdate()
 
-      registrations:
-        currentEvent.registrations,
+    const updatedEvent =
+      await getCommunityEventById(
+        eventId
+      )
 
-      createdAt:
-        currentEvent.createdAt,
+    return updatedEvent
+  } catch (error) {
+    console.error(
+      "Unable to update community event:",
+      error
+    )
 
-      updatedAt:
-        new Date().toISOString(),
-    })
-
-  const updatedEvents = [...events]
-
-  updatedEvents[index] = updatedEvent
-
-  saveEvents(updatedEvents)
-
-  return updatedEvent
+    throw new Error(
+      error?.message ||
+        "Unable to update community event."
+    )
+  }
 }
 
-
-export function deleteCommunityEvent(
+export async function deleteCommunityEvent(
   eventId
 ) {
   if (!eventId) {
@@ -304,31 +887,46 @@ export function deleteCommunityEvent(
     )
   }
 
-  const events = getStoredEvents()
+  ensureAuthenticated()
 
-  const exists = events.some(
-    (event) => event?.id === eventId
-  )
+  const existingEvent =
+    await getCommunityEventById(
+      eventId
+    )
 
-  if (!exists) {
+  if (!existingEvent) {
     throw new Error(
       "Community event was not found."
     )
   }
 
-  const updatedEvents = events.filter(
-    (event) => event?.id !== eventId
-  )
+  try {
+    await deleteDoc(
+      doc(
+        db,
+        COMMUNITY_EVENTS_COLLECTION,
+        eventId
+      )
+    )
 
-  saveEvents(updatedEvents)
+    dispatchUpdate()
 
-  return true
+    return true
+  } catch (error) {
+    console.error(
+      "Unable to delete community event:",
+      error
+    )
+
+    throw new Error(
+      "Unable to delete community event."
+    )
+  }
 }
 
-
-export function registerForCommunityEvent(
+export async function registerForCommunityEvent(
   eventId,
-  registrationData
+  registrationData = {}
 ) {
   if (!eventId) {
     throw new Error(
@@ -336,9 +934,14 @@ export function registerForCommunityEvent(
     )
   }
 
+  const user =
+    ensureAuthenticated()
+
   const userUid =
     String(
-      registrationData?.userUid || ""
+      registrationData?.userUid ||
+        user.uid ||
+        ""
     ).trim()
 
   if (!userUid) {
@@ -347,22 +950,25 @@ export function registerForCommunityEvent(
     )
   }
 
-  const events = getStoredEvents()
+  const currentEvent =
+    await getCommunityEventById(
+      eventId
+    )
 
-  const eventIndex = events.findIndex(
-    (event) => event?.id === eventId
-  )
-
-  if (eventIndex === -1) {
+  if (!currentEvent) {
     throw new Error(
       "Community event was not found."
     )
   }
 
-  const currentEvent =
-    normalizeEvent(events[eventIndex])
-
-  if (currentEvent.status !== "upcoming") {
+  if (
+    ![
+      "approved",
+      "upcoming",
+    ].includes(
+      currentEvent.status
+    )
+  ) {
     throw new Error(
       "Registration is not available for this event."
     )
@@ -371,7 +977,8 @@ export function registerForCommunityEvent(
   const alreadyRegistered =
     currentEvent.registrations.some(
       (registration) =>
-        registration?.userUid === userUid
+        registration?.userUid ===
+        userUid
     )
 
   if (alreadyRegistered) {
@@ -381,7 +988,8 @@ export function registerForCommunityEvent(
   }
 
   if (
-    currentEvent.maxParticipants > 0 &&
+    currentEvent.maxParticipants >
+      0 &&
     currentEvent.registrations.length >=
       currentEvent.maxParticipants
   ) {
@@ -391,7 +999,9 @@ export function registerForCommunityEvent(
   }
 
   const registration = {
-    id: createId("event-registration"),
+    id: createId(
+      "event-registration"
+    ),
 
     eventId,
 
@@ -400,55 +1010,99 @@ export function registerForCommunityEvent(
     userName:
       String(
         registrationData?.userName ||
+          user.displayName ||
           "Eco Citizen"
       ).trim(),
 
     email:
       String(
-        registrationData?.email || ""
+        registrationData?.email ||
+          registrationData?.userEmail ||
+          user.email ||
+          ""
+      ).trim(),
+
+    userEmail:
+      String(
+        registrationData?.userEmail ||
+          registrationData?.email ||
+          user.email ||
+          ""
       ).trim(),
 
     phone:
       String(
-        registrationData?.phone || ""
+        registrationData?.phone ||
+          registrationData?.phoneNumber ||
+          ""
       ).trim(),
 
-    status: "pending",
+    status:
+      "pending",
 
     registeredAt:
       new Date().toISOString(),
 
-    verifiedAt: null,
+    verifiedAt:
+      null,
 
-    verifiedBy: "",
+    verifiedBy:
+      "",
 
-    adminNote: "",
+    adminNote:
+      "",
+
+    attendanceStatus:
+      "pending",
+
+    rewardStatus:
+      "pending",
+
+    rewardDistributedAt:
+      null,
+
+    rewardDistributedBy:
+      "",
   }
 
-  const updatedEvent =
-    normalizeEvent({
-      ...currentEvent,
+  try {
+    const updatedRegistrations = [
+      ...currentEvent.registrations,
+      registration,
+    ]
 
-      registrations: [
-        ...currentEvent.registrations,
-        registration,
-      ],
+    await updateDoc(
+      doc(
+        db,
+        COMMUNITY_EVENTS_COLLECTION,
+        eventId
+      ),
+      {
+        registrations:
+          updatedRegistrations,
 
-      updatedAt:
-        new Date().toISOString(),
-    })
+        updatedAt:
+          serverTimestamp(),
+      }
+    )
 
-  const updatedEvents = [...events]
+    dispatchUpdate()
 
-  updatedEvents[eventIndex] = updatedEvent
+    return registration
+  } catch (error) {
+    console.error(
+      "Unable to register for community event:",
+      error
+    )
 
-  saveEvents(updatedEvents)
-
-  return registration
+    throw new Error(
+      error?.message ||
+        "Unable to register for community event."
+    )
+  }
 }
 
-
-export function cancelCommunityEventRegistration(
+export async function cancelCommunityEventRegistration(
   eventId,
   userUid
 ) {
@@ -458,31 +1112,38 @@ export function cancelCommunityEventRegistration(
     )
   }
 
-  if (!userUid) {
+  const user =
+    ensureAuthenticated()
+
+  const uid =
+    String(
+      userUid ||
+        user.uid ||
+        ""
+    ).trim()
+
+  if (!uid) {
     throw new Error(
       "User authentication is required."
     )
   }
 
-  const events = getStoredEvents()
+  const currentEvent =
+    await getCommunityEventById(
+      eventId
+    )
 
-  const eventIndex = events.findIndex(
-    (event) => event?.id === eventId
-  )
-
-  if (eventIndex === -1) {
+  if (!currentEvent) {
     throw new Error(
       "Community event was not found."
     )
   }
 
-  const currentEvent =
-    normalizeEvent(events[eventIndex])
-
   const registrationExists =
     currentEvent.registrations.some(
       (registration) =>
-        registration?.userUid === userUid
+        registration?.userUid ===
+        uid
     )
 
   if (!registrationExists) {
@@ -491,31 +1152,44 @@ export function cancelCommunityEventRegistration(
     )
   }
 
-  const updatedEvent =
-    normalizeEvent({
-      ...currentEvent,
+  try {
+    const updatedRegistrations =
+      currentEvent.registrations.filter(
+        (registration) =>
+          registration?.userUid !== uid
+      )
 
-      registrations:
-        currentEvent.registrations.filter(
-          (registration) =>
-            registration?.userUid !== userUid
-        ),
+    await updateDoc(
+      doc(
+        db,
+        COMMUNITY_EVENTS_COLLECTION,
+        eventId
+      ),
+      {
+        registrations:
+          updatedRegistrations,
 
-      updatedAt:
-        new Date().toISOString(),
-    })
+        updatedAt:
+          serverTimestamp(),
+      }
+    )
 
-  const updatedEvents = [...events]
+    dispatchUpdate()
 
-  updatedEvents[eventIndex] = updatedEvent
+    return true
+  } catch (error) {
+    console.error(
+      "Unable to cancel registration:",
+      error
+    )
 
-  saveEvents(updatedEvents)
-
-  return true
+    throw new Error(
+      "Unable to cancel registration."
+    )
+  }
 }
 
-
-export function getCommunityEventRegistrations(
+export async function getCommunityEventRegistrations(
   eventId
 ) {
   if (!eventId) {
@@ -523,43 +1197,83 @@ export function getCommunityEventRegistrations(
   }
 
   const event =
-    getCommunityEventById(eventId)
+    await getCommunityEventById(
+      eventId
+    )
 
   return event?.registrations || []
 }
 
-
-export function getUserCommunityEventRegistrations(
+export async function getUserCommunityEventRegistrations(
   userUid
 ) {
   if (!userUid) {
     return []
   }
 
-  return getCommunityEvents().flatMap(
-    (event) =>
-      event.registrations
-        .filter(
-          (registration) =>
-            registration?.userUid === userUid
+  try {
+    const eventsSnapshot =
+      await getDocs(
+        collection(
+          db,
+          COMMUNITY_EVENTS_COLLECTION
         )
-        .map((registration) => ({
-          ...registration,
+      )
 
-          eventTitle:
-            event.title,
+    const events =
+      eventsSnapshot.docs.map(
+        (documentSnapshot) =>
+          normalizeEvent(
+            {
+              ...documentSnapshot.data(),
+              id: documentSnapshot.id,
+            },
+            documentSnapshot.id
+          )
+      )
 
-          eventDate:
-            event.eventDate,
+    return events.flatMap(
+      (event) =>
+        event.registrations
+          .filter(
+            (registration) =>
+              registration?.userUid ===
+              userUid
+          )
+          .map(
+            (registration) => ({
+              ...registration,
 
-          eventLocation:
-            event.location,
-        }))
-  )
+              eventTitle:
+                event.title,
+
+              eventDate:
+                event.eventDate,
+
+              date:
+                event.eventDate,
+
+              eventLocation:
+                event.location,
+
+              eventStatus:
+                event.status,
+            })
+          )
+    )
+  } catch (error) {
+    console.error(
+      "Unable to load user event registrations:",
+      error
+    )
+
+    throw new Error(
+      "Unable to load your community event registrations."
+    )
+  }
 }
 
-
-export function updateCommunityEventRegistrationStatus(
+export async function updateCommunityEventRegistrationStatus(
   eventId,
   registrationId,
   status,
@@ -577,13 +1291,20 @@ export function updateCommunityEventRegistrationStatus(
     )
   }
 
+  ensureAuthenticated()
+
   const normalizedStatus =
     String(status || "")
       .trim()
       .toLowerCase()
 
   if (
-    !["approved", "rejected", "pending"].includes(
+    ![
+      "approved",
+      "rejected",
+      "pending",
+      "verified",
+    ].includes(
       normalizedStatus
     )
   ) {
@@ -592,28 +1313,27 @@ export function updateCommunityEventRegistrationStatus(
     )
   }
 
-  const events = getStoredEvents()
+  const currentEvent =
+    await getCommunityEventById(
+      eventId
+    )
 
-  const eventIndex = events.findIndex(
-    (event) => event?.id === eventId
-  )
-
-  if (eventIndex === -1) {
+  if (!currentEvent) {
     throw new Error(
       "Community event was not found."
     )
   }
 
-  const currentEvent =
-    normalizeEvent(events[eventIndex])
-
   const registrationIndex =
     currentEvent.registrations.findIndex(
       (registration) =>
-        registration?.id === registrationId
+        registration?.id ===
+        registrationId
     )
 
-  if (registrationIndex === -1) {
+  if (
+    registrationIndex === -1
+  ) {
     throw new Error(
       "Event registration was not found."
     )
@@ -627,54 +1347,445 @@ export function updateCommunityEventRegistrationStatus(
   const updatedRegistration = {
     ...currentRegistration,
 
-    status: normalizedStatus,
+    status:
+      normalizedStatus,
 
     verifiedAt:
-      normalizedStatus === "pending"
-        ? null
-        : new Date().toISOString(),
+      [
+        "approved",
+        "rejected",
+        "verified",
+      ].includes(
+        normalizedStatus
+      )
+        ? new Date().toISOString()
+        : null,
 
     verifiedBy:
-      normalizedStatus === "pending"
-        ? ""
-        : String(
-            adminData?.adminUid || ""
-          ).trim(),
+      [
+        "approved",
+        "rejected",
+        "verified",
+      ].includes(
+        normalizedStatus
+      )
+        ? String(
+            adminData?.adminUid ||
+              auth.currentUser?.uid ||
+              ""
+          ).trim()
+        : "",
 
     adminNote:
       String(
         adminData?.adminNote || ""
       ).trim(),
+
+    attendanceStatus:
+      currentRegistration?.attendanceStatus ||
+      "pending",
+
+    rewardStatus:
+      currentRegistration?.rewardStatus ||
+      "pending",
   }
 
-  const updatedRegistrations = [
-    ...currentEvent.registrations,
-  ]
+  const updatedRegistrations =
+    [
+      ...currentEvent.registrations,
+    ]
 
   updatedRegistrations[
     registrationIndex
   ] = updatedRegistration
 
-  const updatedEvent =
-    normalizeEvent({
-      ...currentEvent,
+  try {
+    await updateDoc(
+      doc(
+        db,
+        COMMUNITY_EVENTS_COLLECTION,
+        eventId
+      ),
+      {
+        registrations:
+          updatedRegistrations,
 
-      registrations:
-        updatedRegistrations,
+        updatedAt:
+          serverTimestamp(),
+      }
+    )
 
-      updatedAt:
-        new Date().toISOString(),
-    })
+    dispatchUpdate()
 
-  const updatedEvents = [...events]
+    return updatedRegistration
+  } catch (error) {
+    console.error(
+      "Unable to update event registration:",
+      error
+    )
 
-  updatedEvents[eventIndex] = updatedEvent
-
-  saveEvents(updatedEvents)
-
-  return updatedRegistration
+    throw new Error(
+      error?.message ||
+        "Unable to update event registration."
+    )
+  }
 }
 
+export async function updateCommunityEventStatus(
+  eventId,
+  status,
+  adminData = {}
+) {
+  if (!eventId) {
+    throw new Error(
+      "Community event ID is required."
+    )
+  }
+
+  ensureAuthenticated()
+
+  const normalizedStatus =
+    String(status || "")
+      .trim()
+      .toLowerCase()
+
+  const allowedStatuses = [
+    "pending",
+    "approved",
+    "rejected",
+    "upcoming",
+    "ongoing",
+    "completed",
+    "cancelled",
+  ]
+
+  if (
+    !allowedStatuses.includes(
+      normalizedStatus
+    )
+  ) {
+    throw new Error(
+      "Invalid community event status."
+    )
+  }
+
+  try {
+    await updateDoc(
+      doc(
+        db,
+        COMMUNITY_EVENTS_COLLECTION,
+        eventId
+      ),
+      {
+        status:
+          normalizedStatus,
+
+        rejectionReason:
+          normalizedStatus ===
+          "rejected"
+            ? String(
+                adminData?.rejectionReason ||
+                  ""
+              ).trim()
+            : "",
+
+        adminNote:
+          String(
+            adminData?.adminNote || ""
+          ).trim(),
+
+        updatedAt:
+          serverTimestamp(),
+      }
+    )
+
+    dispatchUpdate()
+
+    return getCommunityEventById(
+      eventId
+    )
+  } catch (error) {
+    console.error(
+      "Unable to update community event status:",
+      error
+    )
+
+    throw new Error(
+      error?.message ||
+        "Unable to update community event status."
+    )
+  }
+}
+
+export async function verifyCommunityEventAttendance(
+  eventId,
+  registrationId,
+  attendanceStatus,
+  adminData = {}
+) {
+  if (!eventId) {
+    throw new Error(
+      "Community event ID is required."
+    )
+  }
+
+  if (!registrationId) {
+    throw new Error(
+      "Registration ID is required."
+    )
+  }
+
+  ensureAuthenticated()
+
+  const normalizedAttendance =
+    String(
+      attendanceStatus || ""
+    )
+      .trim()
+      .toLowerCase()
+
+  if (
+    ![
+      "present",
+      "absent",
+      "pending",
+    ].includes(
+      normalizedAttendance
+    )
+  ) {
+    throw new Error(
+      "Invalid attendance status."
+    )
+  }
+
+  const currentEvent =
+    await getCommunityEventById(
+      eventId
+    )
+
+  if (!currentEvent) {
+    throw new Error(
+      "Community event was not found."
+    )
+  }
+
+  const registrationIndex =
+    currentEvent.registrations.findIndex(
+      (registration) =>
+        registration?.id ===
+        registrationId
+    )
+
+  if (
+    registrationIndex === -1
+  ) {
+    throw new Error(
+      "Event registration was not found."
+    )
+  }
+
+  const currentRegistration =
+    currentEvent.registrations[
+      registrationIndex
+    ]
+
+  const updatedRegistration = {
+    ...currentRegistration,
+
+    attendanceStatus:
+      normalizedAttendance,
+
+    verifiedAt:
+      normalizedAttendance ===
+      "present"
+        ? new Date().toISOString()
+        : currentRegistration.verifiedAt,
+
+    verifiedBy:
+      String(
+        adminData?.adminUid ||
+          auth.currentUser?.uid ||
+          ""
+      ).trim(),
+
+    rewardStatus:
+      normalizedAttendance ===
+      "present"
+        ? currentRegistration.rewardStatus ||
+          "pending"
+        : "not-eligible",
+  }
+
+  const updatedRegistrations =
+    [
+      ...currentEvent.registrations,
+    ]
+
+  updatedRegistrations[
+    registrationIndex
+  ] = updatedRegistration
+
+  try {
+    await updateDoc(
+      doc(
+        db,
+        COMMUNITY_EVENTS_COLLECTION,
+        eventId
+      ),
+      {
+        registrations:
+          updatedRegistrations,
+
+        updatedAt:
+          serverTimestamp(),
+      }
+    )
+
+    dispatchUpdate()
+
+    return updatedRegistration
+  } catch (error) {
+    console.error(
+      "Unable to verify event attendance:",
+      error
+    )
+
+    throw new Error(
+      "Unable to verify event attendance."
+    )
+  }
+}
+
+export async function distributeCommunityEventReward(
+  eventId,
+  registrationId,
+  rewardData = {}
+) {
+  if (!eventId) {
+    throw new Error(
+      "Community event ID is required."
+    )
+  }
+
+  if (!registrationId) {
+    throw new Error(
+      "Registration ID is required."
+    )
+  }
+
+  ensureAuthenticated()
+
+  const currentEvent =
+    await getCommunityEventById(
+      eventId
+    )
+
+  if (!currentEvent) {
+    throw new Error(
+      "Community event was not found."
+    )
+  }
+
+  const registrationIndex =
+    currentEvent.registrations.findIndex(
+      (registration) =>
+        registration?.id ===
+        registrationId
+    )
+
+  if (
+    registrationIndex === -1
+  ) {
+    throw new Error(
+      "Event registration was not found."
+    )
+  }
+
+  const currentRegistration =
+    currentEvent.registrations[
+      registrationIndex
+    ]
+
+  if (
+    currentRegistration.attendanceStatus !==
+    "present"
+  ) {
+    throw new Error(
+      "Reward can only be distributed to a verified participant."
+    )
+  }
+
+  const updatedRegistration = {
+    ...currentRegistration,
+
+    rewardStatus:
+      "distributed",
+
+    reward:
+      rewardData || {},
+
+    rewardDistributedAt:
+      new Date().toISOString(),
+
+    rewardDistributedBy:
+      String(
+        auth.currentUser?.uid ||
+          ""
+      ).trim(),
+  }
+
+  const updatedRegistrations =
+    [
+      ...currentEvent.registrations,
+    ]
+
+  updatedRegistrations[
+    registrationIndex
+  ] = updatedRegistration
+
+  try {
+    await updateDoc(
+      doc(
+        db,
+        COMMUNITY_EVENTS_COLLECTION,
+        eventId
+      ),
+      {
+        registrations:
+          updatedRegistrations,
+
+        updatedAt:
+          serverTimestamp(),
+      }
+    )
+
+    dispatchUpdate()
+
+    return updatedRegistration
+  } catch (error) {
+    console.error(
+      "Unable to distribute event reward:",
+      error
+    )
+
+    throw new Error(
+      "Unable to distribute event reward."
+    )
+  }
+}
+
+export async function getPendingCommunityEvents() {
+  return getCommunityEvents({
+    includePending: true,
+  }).then(
+    (events) =>
+      events.filter(
+        (event) =>
+          event.status ===
+          "pending"
+      )
+  )
+}
 
 export function subscribeToCommunityEventUpdates(
   callback
@@ -686,8 +1797,18 @@ export function subscribeToCommunityEventUpdates(
     return () => {}
   }
 
-  const handleUpdate = () => {
-    callback(getCommunityEvents())
+  const handleUpdate = async () => {
+    try {
+      const events =
+        await getCommunityEvents()
+
+      callback(events)
+    } catch (error) {
+      console.error(
+        "Unable to refresh community events:",
+        error
+      )
+    }
   }
 
   window.addEventListener(
@@ -713,25 +1834,44 @@ export function subscribeToCommunityEventUpdates(
   }
 }
 
+export async function clearCommunityEvents() {
+  ensureAuthenticated()
 
-export function clearCommunityEvents() {
-  if (typeof window === "undefined") {
-    return
-  }
+  try {
+    const snapshot =
+      await getDocs(
+        collection(
+          db,
+          COMMUNITY_EVENTS_COLLECTION
+        )
+      )
 
-  localStorage.removeItem(
-    COMMUNITY_EVENTS_STORAGE_KEY
-  )
-
-  window.dispatchEvent(
-    new Event(
-      COMMUNITY_EVENTS_UPDATED_EVENT
+    await Promise.all(
+      snapshot.docs.map(
+        (documentSnapshot) =>
+          deleteDoc(
+            documentSnapshot.ref
+          )
+      )
     )
-  )
+
+    dispatchUpdate()
+
+    return true
+  } catch (error) {
+    console.error(
+      "Unable to clear community events:",
+      error
+    )
+
+    throw new Error(
+      "Unable to clear community events."
+    )
+  }
 }
 
-
 export {
+  COMMUNITY_EVENTS_COLLECTION,
   COMMUNITY_EVENTS_STORAGE_KEY,
   COMMUNITY_EVENTS_UPDATED_EVENT,
 }
