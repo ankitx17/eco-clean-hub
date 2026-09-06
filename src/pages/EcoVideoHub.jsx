@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import useAuth from "../hooks/useAuth"
 import {
   ArrowLeft,
@@ -26,8 +26,19 @@ import {
   Mail,
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import {
+  addDoc,
+  collection,
+  doc,
+  getDocs,
+  query,
+  updateDoc,
+  where,
+  serverTimestamp,
+} from "firebase/firestore"
+import { db } from "../services/firebase"
 
-const STORAGE_KEY = "eco-clean-hub-eco-video-hub"
+const VIDEO_COLLECTION = "videoSubmissions"
 
 const categories = [
   "Cleanup",
@@ -153,36 +164,46 @@ const initialVideos = [
   },
 ]
 
-function loadSavedVideos() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
+function formatFirestoreDate(value) {
+  if (!value) return new Date().toISOString()
 
-    if (!saved) {
-      return initialVideos
-    }
-
-    const parsed = JSON.parse(saved)
-
-    if (!Array.isArray(parsed)) {
-      return initialVideos
-    }
-
-    return [
-      ...parsed,
-      ...initialVideos.filter(
-        (video) => !parsed.some((item) => item.id === video.id)
-      ),
-    ]
-  } catch {
-    return initialVideos
+  if (typeof value?.toDate === "function") {
+    return value.toDate().toISOString()
   }
+
+  return String(value)
 }
 
-function saveVideos(videos) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(videos))
-  } catch {
-    // Ignore restricted browser storage environments.
+function normalizeFirestoreVideo(item, currentUserId) {
+  const status = String(item.status || "pending").toLowerCase()
+  const verified = status === "approved" || item.verified === true
+
+  return {
+    id: item.id,
+    creator: item.creator || item.realName || "Eco Community Creator",
+    creatorInitials: item.creatorInitials || getInitials(item.creator || item.realName),
+    realName: item.realName || item.creator || "",
+    contactNumber: item.contactNumber || "",
+    email: item.email || "",
+    title: item.title || "Eco Community Video",
+    description: item.description || "",
+    url: item.url || "",
+    platform: item.platform || getPlatform(item.url),
+    category: item.category || "Awareness",
+    location: item.location || "Community",
+    views: Number(item.views) || 0,
+    reward: Number(item.reward ?? item.rewardAmount ?? 0) || 0,
+    verified,
+    trending: Boolean(item.trending),
+    submittedByMe: Boolean(currentUserId && item.userId === currentUserId),
+    creditConfirmed: item.creditConfirmed === true,
+    status,
+    userId: item.userId || "",
+    submittedAt: formatFirestoreDate(item.submittedAt || item.createdAt),
+    thumbnail:
+      item.thumbnail ||
+      getYouTubeThumbnail(item.url) ||
+      "https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?auto=format&fit=crop&w=1200&q=80",
   }
 }
 
@@ -1166,15 +1187,87 @@ function RedImpactWarning() {
 
 export default function EcoVideoHub() {
   const navigate = useNavigate()
-  const { role } = useAuth()
+  const { user, role } = useAuth()
   const isAdmin = String(role || "").toLowerCase() === "admin"
-
-  const [videos, setVideos] = useState(() => loadSavedVideos())
+  const [videos, setVideos] = useState(() => initialVideos)
   const [activeFilter, setActiveFilter] = useState("All Videos")
   const [showSubmissionModal, setShowSubmissionModal] = useState(false)
   const [watchingVideo, setWatchingVideo] = useState(null)
   const [verifyingVideo, setVerifyingVideo] = useState(null)
   const [notice, setNotice] = useState("")
+  const [loadingVideos, setLoadingVideos] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadVideosFromFirestore() {
+      try {
+        setLoadingVideos(true)
+
+        const approvedSnapshot = await getDocs(
+          query(
+            collection(db, VIDEO_COLLECTION),
+            where("status", "==", "approved")
+          )
+        )
+
+        const firestoreItems = approvedSnapshot.docs.map((documentSnapshot) => ({
+          id: documentSnapshot.id,
+          ...documentSnapshot.data(),
+        }))
+
+        if (user?.uid) {
+          const ownSnapshot = await getDocs(
+            query(
+              collection(db, VIDEO_COLLECTION),
+              where("userId", "==", user.uid)
+            )
+          )
+
+          ownSnapshot.docs.forEach((documentSnapshot) => {
+            const item = {
+              id: documentSnapshot.id,
+              ...documentSnapshot.data(),
+            }
+
+            if (!firestoreItems.some((existing) => existing.id === item.id)) {
+              firestoreItems.push(item)
+            }
+          })
+        }
+
+        if (!mounted) return
+
+        const firestoreVideos = firestoreItems.map((item) =>
+          normalizeFirestoreVideo(item, user?.uid)
+        )
+
+        setVideos([
+          ...firestoreVideos,
+          ...initialVideos.filter(
+            (video) => !firestoreVideos.some((item) => item.id === video.id)
+          ),
+        ])
+      } catch (error) {
+        console.error("Failed to load eco video submissions:", error)
+
+        if (mounted) {
+          setVideos(initialVideos)
+          showNotice("Unable to load community videos. Please refresh and try again.")
+        }
+      } finally {
+        if (mounted) {
+          setLoadingVideos(false)
+        }
+      }
+    }
+
+    loadVideosFromFirestore()
+
+    return () => {
+      mounted = false
+    }
+  }, [user?.uid])
 
   const stats = useMemo(() => {
     const totalVideos = videos.length
@@ -1217,7 +1310,6 @@ export default function EcoVideoHub() {
 
   function updateVideos(nextVideos) {
     setVideos(nextVideos)
-    saveVideos(nextVideos)
   }
 
   function showNotice(message) {
@@ -1228,7 +1320,12 @@ export default function EcoVideoHub() {
     }, 4000)
   }
 
-  function handleSubmitVideo(form) {
+  async function handleSubmitVideo(form) {
+    if (!user) {
+      showNotice("Please log in before submitting an Eco Video.")
+      return
+    }
+
     const submittedUrl = form.url.trim()
     const submittedYouTubeId = getYouTubeVideoId(submittedUrl)
 
@@ -1243,70 +1340,124 @@ export default function EcoVideoHub() {
       }
     }
 
-    const newVideo = {
-      id: `eco-${Date.now()}`,
-      creator: form.realName,
-      creatorInitials: getInitials(form.realName),
-      realName: form.realName,
-      contactNumber: form.contactNumber,
-      email: form.email,
-      title: form.title,
-      description: form.description,
-      url: form.url,
-      platform: form.platform,
-      category: form.category,
-      location: form.location,
-      views: 0,
-      reward: 0,
-      verified: false,
-      trending: false,
-      submittedByMe: true,
-      creditConfirmed: true,
-      submittedAt: new Date().toISOString(),
-      thumbnail:
-        getYouTubeThumbnail(form.url) ||
-        "https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?auto=format&fit=crop&w=1200&q=80",
+    try {
+      const documentReference = await addDoc(
+        collection(db, VIDEO_COLLECTION),
+        {
+          userId: user.uid,
+          creator: form.realName,
+          creatorInitials: getInitials(form.realName),
+          realName: form.realName,
+          contactNumber: form.contactNumber,
+          email: form.email,
+          title: form.title,
+          description: form.description,
+          url: submittedUrl,
+          platform: form.platform,
+          category: form.category,
+          location: form.location,
+          views: 0,
+          reward: 0,
+          verified: false,
+          trending: false,
+          status: "pending",
+          creditConfirmed: true,
+          thumbnail:
+            getYouTubeThumbnail(submittedUrl) ||
+            "https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?auto=format&fit=crop&w=1200&q=80",
+          submittedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+          reviewedAt: null,
+          reviewedBy: null,
+          adminRemark: "",
+        }
+      )
+
+      const newVideo = {
+        id: documentReference.id,
+        creator: form.realName,
+        creatorInitials: getInitials(form.realName),
+        realName: form.realName,
+        contactNumber: form.contactNumber,
+        email: form.email,
+        title: form.title,
+        description: form.description,
+        url: submittedUrl,
+        platform: form.platform,
+        category: form.category,
+        location: form.location,
+        views: 0,
+        reward: 0,
+        verified: false,
+        trending: false,
+        submittedByMe: true,
+        creditConfirmed: true,
+        status: "pending",
+        submittedAt: new Date().toISOString(),
+        thumbnail:
+          getYouTubeThumbnail(submittedUrl) ||
+          "https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?auto=format&fit=crop&w=1200&q=80",
+      }
+
+      updateVideos([newVideo, ...videos])
+      setShowSubmissionModal(false)
+      setActiveFilter("My Submissions")
+
+      showNotice(
+        "Video submitted successfully. It is now pending admin verification."
+      )
+    } catch (error) {
+      console.error("Eco video submission error:", error)
+      showNotice(
+        error?.message ||
+          "Video submission failed. Please try again."
+      )
     }
-
-    const nextVideos = [newVideo, ...videos]
-
-    updateVideos(nextVideos)
-
-    setShowSubmissionModal(false)
-    setActiveFilter("My Submissions")
-
-    showNotice(
-      "Video submitted successfully for community verification."
-    )
   }
 
-  function handleApproveVideo(amount) {
-    if (!isAdmin) return
-    if (!verifyingVideo) {
-      return
-    }
+  async function handleApproveVideo(amount) {
+    if (!isAdmin || !verifyingVideo) return
 
     const targetId = verifyingVideo.id
 
-    const nextVideos = videos.map((video) => {
-      if (video.id !== targetId) {
-        return video
+    try {
+      if (verifyingVideo.userId || verifyingVideo.status) {
+        await updateDoc(
+          doc(db, VIDEO_COLLECTION, targetId),
+          {
+            status: "approved",
+            verified: true,
+            reward: amount,
+            reviewedBy: user?.uid || null,
+            reviewedAt: serverTimestamp(),
+          }
+        )
       }
 
-      return {
-        ...video,
-        verified: true,
-        reward: amount,
-      }
-    })
+      const nextVideos = videos.map((video) =>
+        video.id === targetId
+          ? {
+              ...video,
+              verified: true,
+              reward: amount,
+              status: "approved",
+            }
+          : video
+      )
 
-    updateVideos(nextVideos)
+      updateVideos(nextVideos)
+      setVerifyingVideo(null)
 
-    setVerifyingVideo(null)
-
-    showNotice(
-      `${formatNumber(amount)} ZenjiCoins approved for ${verifyingVideo.creator}.`
-    )
+      showNotice(
+        `${formatNumber(amount)} ZenjiCoins approved for ${verifyingVideo.creator}.`
+      )
+    } catch (error) {
+      console.error("Eco video approval error:", error)
+      showNotice(
+        error?.message ||
+          "Unable to approve this video. Please try again."
+      )
+    }
   }
 
   return (
@@ -1588,9 +1739,3 @@ export default function EcoVideoHub() {
     </div>
   )
 }
-
-
-
-
-
-

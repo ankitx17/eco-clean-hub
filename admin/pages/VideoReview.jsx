@@ -21,9 +21,19 @@ import {
   useState,
 } from "react"
 
+import {
+  collection,
+  doc,
+  getDocs,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore"
 
-const STORAGE_KEY =
-  "eco-clean-hub-eco-video-hub"
+import { db } from "../../src/services/firebase"
+
+
+const VIDEO_COLLECTION =
+  "videoSubmissions"
 
 
 function formatNumber(value) {
@@ -45,7 +55,10 @@ function formatDate(value) {
   }
 
   try {
-    const date = new Date(value)
+    const date =
+      typeof value?.toDate === "function"
+        ? value.toDate()
+        : new Date(value)
 
     if (Number.isNaN(date.getTime())) {
       return "—"
@@ -59,11 +72,25 @@ function formatDate(value) {
 
 
 function getStatus(video) {
-  if (video.rejected) {
+  const explicitStatus =
+    String(video?.status || "").toLowerCase()
+
+  if (
+    explicitStatus === "approved" ||
+    explicitStatus === "verified"
+  ) {
+    return "approved"
+  }
+
+  if (explicitStatus === "rejected") {
     return "rejected"
   }
 
-  if (video.verified) {
+  if (video?.rejected) {
+    return "rejected"
+  }
+
+  if (video?.verified) {
     return "approved"
   }
 
@@ -147,44 +174,7 @@ function getThumbnail(video) {
 }
 
 
-function loadVideos() {
-  try {
-    const saved =
-      localStorage.getItem(
-        STORAGE_KEY
-      )
 
-    if (!saved) {
-      return []
-    }
-
-    const parsed =
-      JSON.parse(saved)
-
-    if (!Array.isArray(parsed)) {
-      return []
-    }
-
-    return parsed
-  } catch {
-    return []
-  }
-}
-
-
-function saveVideos(videos) {
-  try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(videos)
-    )
-  } catch (error) {
-    console.error(
-      "Failed to save videos:",
-      error
-    )
-  }
-}
 
 
 function StatusBadge({ status }) {
@@ -755,18 +745,81 @@ function VideoReview() {
 
 
   // =====================================================
-  // LOAD VIDEOS
+  // LOAD VIDEOS FROM FIRESTORE
   // =====================================================
 
-  const loadVideos = () => {
-    setLoading(true)
+  const loadVideos = async () => {
+    try {
+      setLoading(true)
+      setNotice("")
 
-    const saved =
-      loadVideosFromStorage()
+      const snapshot =
+        await getDocs(
+          collection(
+            db,
+            VIDEO_COLLECTION
+          )
+        )
 
-    setVideos(saved)
+      const videoList =
+        snapshot.docs.map(
+          (documentSnapshot) => ({
+            id: documentSnapshot.id,
+            ...documentSnapshot.data(),
+          })
+        )
 
-    setLoading(false)
+      // Newest submissions first.
+      videoList.sort((a, b) => {
+        const getTime = (value) => {
+          if (!value) {
+            return 0
+          }
+
+          if (
+            typeof value.toDate ===
+            "function"
+          ) {
+            return value
+              .toDate()
+              .getTime()
+          }
+
+          const date =
+            new Date(value)
+
+          return Number.isNaN(
+            date.getTime()
+          )
+            ? 0
+            : date.getTime()
+        }
+
+        return (
+          getTime(
+            b.submittedAt ||
+              b.createdAt
+          ) -
+          getTime(
+            a.submittedAt ||
+              a.createdAt
+          )
+        )
+      })
+
+      setVideos(videoList)
+    } catch (error) {
+      console.error(
+        "Failed to load video submissions:",
+        error
+      )
+
+      setNotice(
+        "Video submissions load nahi ho paayi. Firestore rules ya videoSubmissions collection check karo."
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
 
@@ -882,16 +935,24 @@ function VideoReview() {
 
 
   // =====================================================
-  // UPDATE VIDEO
+  // UPDATE VIDEO IN FIRESTORE
   // =====================================================
 
-  const updateVideo = (
+  const updateVideo = async (
     videoId,
     updates
   ) => {
+    await updateDoc(
+      doc(
+        db,
+        VIDEO_COLLECTION,
+        videoId
+      ),
+      updates
+    )
 
-    const nextVideos =
-      videos.map(
+    setVideos((currentVideos) =>
+      currentVideos.map(
         (video) =>
           video.id === videoId
             ? {
@@ -900,10 +961,7 @@ function VideoReview() {
               }
             : video
       )
-
-    setVideos(nextVideos)
-
-    saveVideos(nextVideos)
+    )
   }
 
 
@@ -911,39 +969,54 @@ function VideoReview() {
   // APPROVE
   // =====================================================
 
-  const handleApprove = (
+  const handleApprove = async (
     amount
   ) => {
-
     if (!selectedVideo) {
       return
     }
 
-    updateVideo(
-      selectedVideo.id,
-      {
-        verified: true,
-        rejected: false,
-        reward: amount,
-        verifiedAt:
-          new Date().toISOString(),
-      }
-    )
+    try {
+      const videoId =
+        selectedVideo.id
 
-    setSelectedVideo(null)
+      await updateVideo(
+        videoId,
+        {
+          status: "approved",
+          verified: true,
+          rejected: false,
+          reward: amount,
+          reviewedAt:
+            serverTimestamp(),
+          rejectionReason: null,
+        }
+      )
 
-    setNotice(
-      `${formatNumber(amount)} ZenjiCoins approved for ${
-        selectedVideo.creator ||
-        selectedVideo.realName ||
-        "the creator"
-      }.`
-    )
+      setSelectedVideo(null)
 
-    window.setTimeout(
-      () => setNotice(""),
-      4000
-    )
+      setNotice(
+        `${formatNumber(amount)} ZenjiCoins approved for ${
+          selectedVideo.creator ||
+          selectedVideo.realName ||
+          "the creator"
+        }.`
+      )
+
+      window.setTimeout(
+        () => setNotice(""),
+        4000
+      )
+    } catch (error) {
+      console.error(
+        "Failed to approve video:",
+        error
+      )
+
+      setNotice(
+        "Video approve nahi ho paaya. Firestore rules check karo."
+      )
+    }
   }
 
 
@@ -951,38 +1024,53 @@ function VideoReview() {
   // REJECT
   // =====================================================
 
-  const handleReject = (
+  const handleReject = async (
     reason
   ) => {
-
     if (!selectedVideo) {
       return
     }
 
-    updateVideo(
-      selectedVideo.id,
-      {
-        verified: false,
-        rejected: true,
-        reward: 0,
-        rejectionReason:
-          reason,
-        rejectedAt:
-          new Date().toISOString(),
-      }
-    )
+    try {
+      const videoId =
+        selectedVideo.id
 
-    setSelectedVideo(null)
+      await updateVideo(
+        videoId,
+        {
+          status: "rejected",
+          verified: false,
+          rejected: true,
+          reward: 0,
+          rejectionReason:
+            reason,
+          reviewedAt:
+            serverTimestamp(),
+        }
+      )
 
-    setNotice(
-      "Video submission rejected successfully."
-    )
+      setSelectedVideo(null)
 
-    window.setTimeout(
-      () => setNotice(""),
-      4000
-    )
+      setNotice(
+        "Video submission rejected successfully."
+      )
+
+      window.setTimeout(
+        () => setNotice(""),
+        4000
+      )
+    } catch (error) {
+      console.error(
+        "Failed to reject video:",
+        error
+      )
+
+      setNotice(
+        "Video reject nahi ho paaya. Firestore rules check karo."
+      )
+    }
   }
+
 
 
   return (
@@ -1565,30 +1653,7 @@ function VideoReview() {
 }
 
 
-// Separate function so loadVideos()
-// doesn't conflict with state function.
 
-function loadVideosFromStorage() {
-  try {
-    const saved =
-      localStorage.getItem(
-        STORAGE_KEY
-      )
-
-    if (!saved) {
-      return []
-    }
-
-    const parsed =
-      JSON.parse(saved)
-
-    return Array.isArray(parsed)
-      ? parsed
-      : []
-  } catch {
-    return []
-  }
-}
 
 
 export default VideoReview
