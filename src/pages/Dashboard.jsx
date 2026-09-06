@@ -726,6 +726,9 @@ function Dashboard() {
         </section>
 
 
+        {/* ECO VIDEO FEED */}
+        {/* ECO VIDEO FEED */}
+        <EcoVideoFeed />
         {/* =====================================================
             FINAL CTA
            ===================================================== */}
@@ -773,3 +776,7 @@ function Dashboard() {
 }
 
 export default Dashboard
+
+
+
+

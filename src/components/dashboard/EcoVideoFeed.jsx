@@ -1,26 +1,41 @@
 import { useMemo, useState } from "react"
 import {
+  ArrowRight,
   BadgeCheck,
   ChevronLeft,
   ChevronRight,
   Coins,
   Eye,
   Play,
+  Plus,
   TrendingUp,
   Video,
   X,
 } from "lucide-react"
+import { Link } from "react-router-dom"
 
 const STORAGE_KEY = "eco-clean-hub-eco-video-hub"
 
-const fallbackVideos = [
+const legacyIds = new Set([
+  "eco-001",
+  "eco-002",
+  "eco-003",
+  "eco-004",
+  "eco-005",
+  "eco-006",
+  "eco-feed-001",
+  "eco-feed-002",
+  "eco-feed-003",
+])
+
+const initialVideos = [
   {
-    id: "eco-feed-001",
-    creator: "Aarav Green Team",
-    title: "Community Lake Cleanup Drive",
+    id: "eco-yt-001",
+    creator: "Eco Community Creator",
+    title: "Eco Action Community Video 1",
     description:
-      "Local volunteers cleaned plastic waste from the lake-side area and separated recyclable material.",
-    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "A community environmental action shared through the Eco Clean Hub.",
+    url: "https://www.youtube.com/embed/FysNW1_i3lM",
     platform: "YouTube",
     category: "Cleanup",
     location: "Community",
@@ -28,42 +43,105 @@ const fallbackVideos = [
     reward: 250,
     verified: true,
     trending: true,
+    submittedByMe: false,
+    creditConfirmed: true,
     thumbnail:
-      "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=1200&q=80",
+      "https://img.youtube.com/vi/FysNW1_i3lM/hqdefault.jpg",
   },
   {
-    id: "eco-feed-002",
+    id: "eco-yt-002",
+    creator: "Aarav Green Team",
+    title: "Community Lake Cleanup Drive",
+    description:
+      "Community members working together to clean and improve a local environment.",
+    url: "https://www.youtube.com/embed/zlC6BNWr-Co",
+    platform: "YouTube",
+    category: "Tree Plantation",
+    location: "Community",
+    views: 12840,
+    reward: 250,
+    verified: true,
+    trending: true,
+    submittedByMe: false,
+    creditConfirmed: true,
+    thumbnail:
+      "https://img.youtube.com/vi/zlC6BNWr-Co/hqdefault.jpg",
+  },
+  {
+    id: "eco-yt-003",
+    creator: "Green Community Creator",
+    title: "Eco Action Community Video 2",
+    description:
+      "A verified environmental action shared by the Eco Clean Hub community.",
+    url: "https://www.youtube.com/embed/cV2gBU6hKfY",
+    platform: "YouTube",
+    category: "Recycling Drive",
+    location: "Community",
+    views: 9340,
+    reward: 400,
+    verified: true,
+    trending: false,
+    submittedByMe: false,
+    creditConfirmed: true,
+    thumbnail:
+      "https://img.youtube.com/vi/cV2gBU6hKfY/hqdefault.jpg",
+  },
+  {
+    id: "eco-yt-004",
     creator: "Green Youth Collective",
     title: "100 Trees Plantation Challenge",
     description:
-      "Students and residents planted native trees around a community open space.",
-    url: "https://www.youtube.com/watch?v=ysz5S6PUM-U",
+      "A community tree plantation activity focused on creating a greener environment.",
+    url: "https://www.youtube.com/embed/Ga_QcJqcGcc",
     platform: "YouTube",
-    category: "Tree Plantation",
+    category: "Awareness",
     location: "Community",
     views: 9340,
     reward: 400,
     verified: true,
     trending: true,
+    submittedByMe: false,
+    creditConfirmed: true,
     thumbnail:
-      "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=1200&q=80",
+      "https://img.youtube.com/vi/Ga_QcJqcGcc/hqdefault.jpg",
   },
   {
-    id: "eco-feed-003",
-    creator: "Neha Sharma",
-    title: "Plastic Bottle Recycling Awareness",
+    id: "eco-yt-005",
+    creator: "Eco Green Creator",
+    title: "Community Environmental Action",
     description:
-      "A short awareness video showing proper segregation and recycling of plastic bottles.",
-    url: "https://www.instagram.com/",
-    platform: "Instagram",
-    category: "Recycling Drive",
+      "Environmental awareness and community action shared through Eco Clean Hub.",
+    url: "https://www.youtube.com/embed/eaJz6XUPVuc",
+    platform: "YouTube",
+    category: "Cleanup",
     location: "Community",
     views: 6210,
     reward: 150,
-    verified: true,
+    verified: false,
     trending: false,
+    submittedByMe: false,
+    creditConfirmed: true,
     thumbnail:
-      "https://images.unsplash.com/photo-1604187351574-c75ca79f5807?auto=format&fit=crop&w=1200&q=80",
+      "https://img.youtube.com/vi/eaJz6XUPVuc/hqdefault.jpg",
+  },
+  {
+    id: "eco-yt-006",
+    creator: "Eco Action Team",
+    title: "Green Awareness Community Video",
+    description:
+      "A community-focused environmental awareness video.",
+    url: "https://www.youtube.com/embed/BkWMJkn1Q2E",
+    platform: "YouTube",
+    category: "Awareness",
+    location: "Community",
+    views: 4380,
+    reward: 100,
+    verified: false,
+    trending: false,
+    submittedByMe: false,
+    creditConfirmed: true,
+    thumbnail:
+      "https://img.youtube.com/vi/BkWMJkn1Q2E/hqdefault.jpg",
   },
 ]
 
@@ -77,32 +155,37 @@ function formatNumber(value) {
   return new Intl.NumberFormat("en-IN").format(number)
 }
 
-function getYouTubeEmbedUrl(url) {
+function getYouTubeVideoId(url) {
+  if (!url) {
+    return ""
+  }
+
   try {
     const parsed = new URL(url)
 
     if (parsed.hostname.includes("youtu.be")) {
-      const id = parsed.pathname.replace("/", "").trim()
-
-      return id ? `https://www.youtube.com/embed/${id}` : ""
+      return parsed.pathname.replace("/", "").split("/")[0]
     }
 
-    if (parsed.hostname.includes("youtube.com")) {
-      const videoId = parsed.searchParams.get("v")
+    if (!parsed.hostname.includes("youtube.com")) {
+      return ""
+    }
 
-      if (videoId) {
-        return `https://www.youtube.com/embed/${videoId}`
-      }
+    const queryId = parsed.searchParams.get("v")
 
-      const parts = parsed.pathname.split("/").filter(Boolean)
+    if (queryId) {
+      return queryId
+    }
 
-      if (parts[0] === "shorts" && parts[1]) {
-        return `https://www.youtube.com/embed/${parts[1]}`
-      }
+    const parts = parsed.pathname.split("/").filter(Boolean)
 
-      if (parts[0] === "embed" && parts[1]) {
-        return `https://www.youtube.com/embed/${parts[1]}`
-      }
+    if (
+      (parts[0] === "embed" ||
+        parts[0] === "shorts" ||
+        parts[0] === "live") &&
+      parts[1]
+    ) {
+      return parts[1]
     }
   } catch {
     return ""
@@ -111,40 +194,111 @@ function getYouTubeEmbedUrl(url) {
   return ""
 }
 
+function getYouTubeEmbedUrl(url) {
+  const videoId = getYouTubeVideoId(url)
+
+  return videoId
+    ? `https://www.youtube.com/embed/${videoId}`
+    : ""
+}
+
+function getYouTubeThumbnail(url) {
+  const videoId = getYouTubeVideoId(url)
+
+  return videoId
+    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+    : ""
+}
+
 function loadVideos() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
 
     if (!saved) {
-      return fallbackVideos
+      return initialVideos
     }
 
     const parsed = JSON.parse(saved)
 
     if (!Array.isArray(parsed)) {
-      return fallbackVideos
+      return initialVideos
     }
 
-    return [
-      ...parsed,
-      ...fallbackVideos.filter(
-        (fallback) => !parsed.some((video) => video.id === fallback.id),
-      ),
-    ]
+    const cleanSavedVideos = parsed.filter((video) => {
+      if (!video || typeof video !== "object") {
+        return false
+      }
+
+      if (legacyIds.has(video.id)) {
+        return false
+      }
+
+      const oldDummyUrls = [
+        "dQw4w9WgXcQ",
+        "ysz5S6PUM-U",
+        "www.instagram.com",
+        "www.facebook.com",
+      ]
+
+      if (
+        typeof video.url === "string" &&
+        oldDummyUrls.some((value) => video.url.includes(value))
+      ) {
+        return false
+      }
+
+      return true
+    })
+
+    const currentInitialVideos = initialVideos.map((initialVideo) => {
+      const savedVersion = cleanSavedVideos.find(
+        (video) => video.id === initialVideo.id,
+      )
+
+      return savedVersion
+        ? {
+            ...initialVideo,
+            ...savedVersion,
+            thumbnail:
+              getYouTubeThumbnail(savedVersion.url) ||
+              initialVideo.thumbnail,
+          }
+        : initialVideo
+    })
+
+    const userVideos = cleanSavedVideos.filter(
+      (video) =>
+        !initialVideos.some(
+          (initialVideo) => initialVideo.id === video.id,
+        ),
+    )
+
+    return [...currentInitialVideos, ...userVideos]
   } catch {
-    return fallbackVideos
+    return initialVideos
   }
 }
 
 function FeedCard({ video, onWatch }) {
+  const thumbnail =
+    video.thumbnail ||
+    getYouTubeThumbnail(video.url) ||
+    ""
+
   return (
     <article className="w-[290px] shrink-0 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:w-[330px]">
       <div className="relative aspect-video overflow-hidden bg-slate-900">
-        <img
-          src={video.thumbnail}
-          alt={video.title}
-          className="h-full w-full object-cover transition duration-500 hover:scale-105"
-        />
+        {thumbnail ? (
+          <img
+            src={thumbnail}
+            alt={video.title}
+            className="h-full w-full object-cover transition duration-500 hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center bg-slate-800">
+            <Video className="h-12 w-12 text-slate-500" />
+          </div>
+        )}
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
@@ -233,7 +387,9 @@ function VideoPreviewModal({ video, onClose }) {
       <div className="w-full max-w-4xl overflow-hidden rounded-3xl bg-slate-950 shadow-2xl">
         <div className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4">
           <div className="min-w-0">
-            <p className="truncate font-bold text-white">{video.title}</p>
+            <p className="truncate font-bold text-white">
+              {video.title}
+            </p>
 
             <p className="mt-1 text-xs text-slate-400">
               {video.creator} · {video.category}
@@ -265,12 +421,11 @@ function VideoPreviewModal({ video, onClose }) {
               <Video className="h-12 w-12 text-slate-500" />
 
               <p className="mt-4 text-lg font-bold text-white">
-                External platform video
+                Video preview unavailable
               </p>
 
               <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">
-                This platform does not provide a universal inline preview.
-                Open the original video to watch it.
+                This video cannot be previewed inside the dashboard.
               </p>
 
               <a
@@ -297,13 +452,15 @@ export default function EcoVideoFeed() {
     return videos
       .filter((video) => video.verified || video.trending)
       .sort((a, b) => {
-        const trendingScore = Number(b.trending) - Number(a.trending)
+        const trendingScore =
+          Number(b.trending) - Number(a.trending)
 
         if (trendingScore !== 0) {
           return trendingScore
         }
 
-        const verifiedScore = Number(b.verified) - Number(a.verified)
+        const verifiedScore =
+          Number(b.verified) - Number(a.verified)
 
         if (verifiedScore !== 0) {
           return verifiedScore
@@ -315,7 +472,9 @@ export default function EcoVideoFeed() {
   }, [videos])
 
   function scrollFeed(direction) {
-    const container = document.getElementById("eco-video-feed-scroll")
+    const container = document.getElementById(
+      "eco-video-feed-scroll",
+    )
 
     if (!container) {
       return
@@ -342,12 +501,28 @@ export default function EcoVideoFeed() {
             </h2>
 
             <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-              Discover verified environmental actions shared by the Eco Clean
-              Hub community.
+              Discover verified environmental actions shared by the
+              Eco Clean Hub community.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/eco-video-hub"
+              onClick={() => {
+                window.scrollTo({
+                  top: 0,
+                  left: 0,
+                  behavior: "instant",
+                })
+              }}
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[#176b45] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#125a39]"
+            >
+              <Plus className="h-4 w-4" />
+              Submit Eco Video
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+
             <button
               type="button"
               onClick={() => scrollFeed("left")}
@@ -392,6 +567,14 @@ export default function EcoVideoFeed() {
             <p className="mt-1 text-sm text-slate-500">
               Verified community videos will appear here.
             </p>
+
+            <Link
+              to="/eco-video-hub"
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700"
+            >
+              <Plus className="h-4 w-4" />
+              Submit Eco Video
+            </Link>
           </div>
         )}
       </section>

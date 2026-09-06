@@ -1,4 +1,5 @@
 ﻿import { useMemo, useState } from "react"
+import useAuth from "../hooks/useAuth"
 import {
   ArrowLeft,
   Award,
@@ -318,7 +319,7 @@ function PlatformBadge({ platform }) {
   )
 }
 
-function VideoCard({ video, onWatch, onVerify }) {
+function VideoCard({ video, onWatch, onVerify, canVerify }) {
   return (
     <article className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
       <div className="relative aspect-video overflow-hidden bg-slate-900">
@@ -404,7 +405,7 @@ function VideoCard({ video, onWatch, onVerify }) {
           </div>
 
           <div className="flex items-center gap-2">
-            {!video.verified && (
+            {!video.verified && canVerify && (
               <button
                 type="button"
                 onClick={() => onVerify(video)}
@@ -1165,6 +1166,8 @@ function RedImpactWarning() {
 
 export default function EcoVideoHub() {
   const navigate = useNavigate()
+  const { role } = useAuth()
+  const isAdmin = String(role || "").toLowerCase() === "admin"
 
   const [videos, setVideos] = useState(() => loadSavedVideos())
   const [activeFilter, setActiveFilter] = useState("All Videos")
@@ -1278,6 +1281,8 @@ export default function EcoVideoHub() {
   }
 
   function handleApproveVideo(amount) {
+    if (!isAdmin) return
+    if (!isAdmin) return
     if (!verifyingVideo) {
       return
     }
@@ -1435,6 +1440,8 @@ export default function EcoVideoHub() {
                   video={video}
                   onWatch={setWatchingVideo}
                   onVerify={setVerifyingVideo}
+                  canVerify={isAdmin}
+                  canVerify={isAdmin}
                 />
               ))}
             </div>
@@ -1582,3 +1589,7 @@ export default function EcoVideoHub() {
     </div>
   )
 }
+
+
+
+
