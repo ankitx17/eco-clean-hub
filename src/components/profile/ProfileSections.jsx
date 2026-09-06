@@ -22,7 +22,6 @@ import {
 
 import { ROLE_OPTIONS } from "../../data/profileConstants"
 
-
 export function FormInput({
   label,
   icon,
@@ -53,7 +52,6 @@ export function FormInput({
     </div>
   )
 }
-
 
 export function RoleSelect({
   value,
@@ -97,7 +95,6 @@ export function RoleSelect({
   )
 }
 
-
 function StatCard({
   icon,
   title,
@@ -125,7 +122,6 @@ function StatCard({
   )
 }
 
-
 function InfoBox({
   icon,
   label,
@@ -144,7 +140,6 @@ function InfoBox({
     </div>
   )
 }
-
 
 function ImpactRow({
   icon,
@@ -169,7 +164,6 @@ function ImpactRow({
     </div>
   )
 }
-
 
 function SettingButton({
   icon,
@@ -200,7 +194,6 @@ function SettingButton({
   )
 }
 
-
 export function ProfileHeader({
   profile,
   editForm,
@@ -220,7 +213,6 @@ export function ProfileHeader({
       <div className="px-6 pb-7 sm:px-8">
         <div className="-mt-14 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
-
             <div className="relative">
               <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-[2rem] border-4 border-white bg-green-100 text-3xl font-black text-[#176b45] shadow-xl">
                 {profile.photo ? (
@@ -321,7 +313,6 @@ export function ProfileHeader({
   )
 }
 
-
 export function ProfileStats({ stats }) {
   return (
     <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -355,7 +346,6 @@ export function ProfileStats({ stats }) {
     </section>
   )
 }
-
 
 export function PersonalInformation({
   editing,
@@ -406,10 +396,7 @@ export function PersonalInformation({
               icon={<MapPin size={18} />}
               value={editForm.location}
               onChange={(value) =>
-                updateField(
-                  "location",
-                  value
-                )
+                updateField("location", value)
               }
               placeholder="Enter your city"
             />
@@ -474,7 +461,6 @@ export function PersonalInformation({
   )
 }
 
-
 export function EnvironmentalImpact({
   stats,
 }) {
@@ -525,7 +511,6 @@ export function EnvironmentalImpact({
     </section>
   )
 }
-
 
 export function RecentActivity({
   activities,
@@ -693,7 +678,6 @@ export function RecentActivity({
   )
 }
 
-
 export function AccountSettings({
   loggingOut,
   onEdit,
@@ -762,42 +746,21 @@ export function AccountSettings({
   )
 }
 
-
 export function DeleteAccount({
   onDelete,
 }) {
   return (
-    <section className="mt-6 rounded-3xl border border-red-100 bg-red-50/50 p-6 sm:p-7">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <Trash2
-              size={19}
-              className="text-red-500"
-            />
-
-            <h2 className="font-bold text-red-700">
-              Delete Account
-            </h2>
-          </div>
-
-          <p className="mt-1 text-sm text-red-600/80">
-            Permanently delete your Eco Clean Hub account.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={onDelete}
-          className="rounded-xl border border-red-200 bg-white px-5 py-3 text-sm font-semibold text-red-500 hover:bg-red-100"
-        >
-          Delete Account
-        </button>
-      </div>
+    <section className="mt-6 flex justify-end rounded-3xl border border-red-100 bg-red-50/50 p-6 sm:p-7">
+      <button
+        type="button"
+        onClick={onDelete}
+        className="rounded-xl border border-red-200 bg-white px-5 py-3 text-sm font-semibold text-red-500 transition hover:bg-red-100"
+      >
+        Delete Account
+      </button>
     </section>
   )
 }
-
 
 export function ProfileSections({
   profile,

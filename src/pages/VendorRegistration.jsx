@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom"
 import {
   ArrowLeft,
   Building2,
-  CheckCircle2,
   Mail,
   MapPin,
   Phone,
@@ -11,7 +10,6 @@ import {
   Send,
   ShieldCheck,
 } from "lucide-react"
-import { motion } from "framer-motion"
 
 const FACILITY_TYPES = [
   "MRF",
@@ -97,6 +95,7 @@ function VendorRegistration() {
   const [form, setForm] = useState(initialForm)
   const [acceptedWaste, setAcceptedWaste] = useState([])
   const [submitting, setSubmitting] = useState(false)
+  const [locationLoading, setLocationLoading] = useState(false)
   const [error, setError] = useState("")
 
   const handleChange = (event) => {
@@ -116,36 +115,169 @@ function VendorRegistration() {
     )
   }
 
+  /* =========================================================
+     GET CURRENT LOCATION + REVERSE GEOCODING
+     ========================================================= */
+
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser.")
+      setError(
+        "Geolocation is not supported by your browser."
+      )
       return
     }
 
-    setError("Getting your location...")
+    setLocationLoading(true)
+    setError("")
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
+        const latitude = position.coords.latitude
+        const longitude = position.coords.longitude
+
+        // Save GPS internally immediately.
         setForm((current) => ({
           ...current,
-          latitude: position.coords.latitude.toFixed(6),
-          longitude: position.coords.longitude.toFixed(6),
+          latitude: latitude.toFixed(6),
+          longitude: longitude.toFixed(6),
         }))
 
-        setError("")
+        try {
+          /*
+           * Reverse geocoding:
+           *
+           * Latitude + Longitude
+           *        ↓
+           * OpenStreetMap Nominatim
+           *        ↓
+           * Address + City + State + PIN
+           */
+
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=${encodeURIComponent(
+              latitude
+            )}&lon=${encodeURIComponent(longitude)}`
+          )
+
+          if (!response.ok) {
+            throw new Error(
+              `Address lookup failed with status ${response.status}`
+            )
+          }
+
+          const data = await response.json()
+          const addressData = data.address || {}
+
+          const city =
+            addressData.city ||
+            addressData.town ||
+            addressData.municipality ||
+            addressData.village ||
+            addressData.city_district ||
+            ""
+
+          const state =
+            addressData.state || ""
+
+          const pincode =
+            addressData.postcode || ""
+
+          const completeAddress =
+            data.display_name || ""
+
+          /*
+           * Try to match the returned state with our
+           * dropdown options.
+           */
+          const matchedState =
+            INDIAN_STATES.find(
+              (stateName) =>
+                stateName.toLowerCase() ===
+                state.toLowerCase()
+            ) || ""
+
+          setForm((current) => ({
+            ...current,
+            address: completeAddress,
+            city,
+            state: matchedState,
+            pincode,
+            latitude: latitude.toFixed(6),
+            longitude: longitude.toFixed(6),
+          }))
+
+          if (
+            state &&
+            !matchedState
+          ) {
+            setError(
+              "Location found. Please select your state manually."
+            )
+          } else {
+            setError("")
+          }
+        } catch (reverseError) {
+          console.error(
+            "Reverse geocoding error:",
+            reverseError
+          )
+
+          /*
+           * GPS is still saved even if address lookup fails.
+           */
+          setError(
+            "Location detected, but address could not be fetched. Please enter the address manually."
+          )
+        } finally {
+          setLocationLoading(false)
+        }
       },
-      () => {
-        setError(
-          "Unable to get your location. Please enter latitude and longitude manually."
+      (locationError) => {
+        console.error(
+          "Geolocation error:",
+          locationError
         )
+
+        setLocationLoading(false)
+
+        if (
+          locationError.code ===
+          locationError.PERMISSION_DENIED
+        ) {
+          setError(
+            "Location permission was denied. Please allow location access in your browser."
+          )
+        } else if (
+          locationError.code ===
+          locationError.POSITION_UNAVAILABLE
+        ) {
+          setError(
+            "Your current location is unavailable. Please try again."
+          )
+        } else if (
+          locationError.code ===
+          locationError.TIMEOUT
+        ) {
+          setError(
+            "Location request timed out. Please try again."
+          )
+        } else {
+          setError(
+            "Unable to get your location. Please try again."
+          )
+        }
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
+        timeout: 15000,
         maximumAge: 0,
       }
     )
   }
+
+  /* =========================================================
+     SUBMIT VENDOR
+     ========================================================= */
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -153,12 +285,20 @@ function VendorRegistration() {
     setError("")
 
     if (acceptedWaste.length === 0) {
-      setError("Please select at least one accepted waste type.")
+      setError(
+        "Please select at least one accepted waste type."
+      )
       return
     }
 
+    /*
+     * Latitude and longitude are hidden from the UI,
+     * but are still required internally for MRF distance.
+     */
     if (!form.latitude || !form.longitude) {
-      setError("Please provide the facility location.")
+      setError(
+        "Please use 'Use my location' to set the facility location."
+      )
       return
     }
 
@@ -167,19 +307,28 @@ function VendorRegistration() {
     try {
       const vendor = {
         id: `vendor_${Date.now()}`,
+
         name: form.businessName,
         businessName: form.businessName,
+
         contactPerson: form.contactPerson,
         email: form.email,
         phone: form.phone,
+
         type: form.facilityType,
         facilityType: form.facilityType,
+
         address: form.address,
         city: form.city,
         state: form.state,
         pincode: form.pincode,
+
+        /*
+         * GPS remains internally available for MRF.
+         */
         latitude: Number(form.latitude),
         longitude: Number(form.longitude),
+
         acceptedWaste,
         description: form.description,
 
@@ -196,10 +345,7 @@ function VendorRegistration() {
        * TEMPORARY DEMO STORAGE
        *
        * Abhi admin panel nahi bana hai,
-       * isliye vendor ko localStorage mein save kar rahe hain.
-       *
-       * Baad mein isi data ko Firebase vendorApplications
-       * + Admin Approval system se replace karenge.
+       * isliye vendor localStorage mein save ho raha hai.
        */
 
       const existingVendors = JSON.parse(
@@ -208,29 +354,38 @@ function VendorRegistration() {
         ) || "[]"
       )
 
-      const vendors = Array.isArray(existingVendors)
+      const vendors = Array.isArray(
+        existingVendors
+      )
         ? existingVendors
         : []
 
       localStorage.setItem(
         "eco_clean_hub_registered_vendors",
-        JSON.stringify([vendor, ...vendors])
+        JSON.stringify([
+          vendor,
+          ...vendors,
+        ])
       )
 
-      // Last registered vendor ko separately save karenge
       localStorage.setItem(
         "eco_clean_hub_last_registered_vendor",
         JSON.stringify(vendor)
       )
 
       /*
-       * Direct MRF page
+       * Vendor register hone ke baad MRF page.
        */
-
       navigate("/mrf")
     } catch (submitError) {
-      console.error("Vendor registration error:", submitError)
-      setError("Something went wrong. Please try again.")
+      console.error(
+        "Vendor registration error:",
+        submitError
+      )
+
+      setError(
+        "Something went wrong. Please try again."
+      )
     } finally {
       setSubmitting(false)
     }
@@ -239,7 +394,11 @@ function VendorRegistration() {
   return (
     <main className="min-h-screen bg-[#f7faf7] px-5 py-10">
       <div className="mx-auto max-w-5xl">
-        {/* Header */}
+
+        {/* =================================================
+            HEADER
+            ================================================= */}
+
         <div className="mb-8">
           <button
             type="button"
@@ -269,14 +428,16 @@ function VendorRegistration() {
               </h1>
 
               <p className="mt-2 max-w-2xl text-slate-600">
-                Register your waste facility and help citizens find a
-                disposal point near them.
+                Register your waste facility and help citizens find a disposal point near them.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Temporary demo notice */}
+        {/* =================================================
+            DEMO NOTICE
+            ================================================= */}
+
         <div className="mb-8 flex gap-3 rounded-2xl border border-green-100 bg-green-50 p-4">
           <ShieldCheck
             size={21}
@@ -284,15 +445,20 @@ function VendorRegistration() {
           />
 
           <div className="text-sm leading-6 text-green-900">
-            <strong>Vendor registration:</strong> For now, registered
-            vendors are immediately visible on the MRF page for testing.
-            Admin verification and approval will be added later.
+            <strong>
+              Vendor registration:
+            </strong>{" "}
+            For now, registered vendors are immediately visible on the MRF page for testing. Admin verification and approval will be added later.
           </div>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Business Information */}
+
+            {/* =================================================
+                BUSINESS INFORMATION
+                ================================================= */}
+
             <section className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-xl font-bold text-[#102119]">
                 Business Information
@@ -303,6 +469,7 @@ function VendorRegistration() {
               </p>
 
               <div className="mt-6 space-y-5">
+
                 <Field
                   label="Business / Facility Name"
                   name="businessName"
@@ -323,6 +490,7 @@ function VendorRegistration() {
                 />
 
                 <div className="grid gap-5 sm:grid-cols-2">
+
                   <Field
                     label="Email"
                     name="email"
@@ -344,6 +512,7 @@ function VendorRegistration() {
                     required
                     icon={<Phone size={17} />}
                   />
+
                 </div>
 
                 <div>
@@ -356,24 +525,34 @@ function VendorRegistration() {
                     value={form.facilityType}
                     onChange={handleChange}
                     required
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-100"
                   >
                     <option value="">
                       Select facility type
                     </option>
 
-                    {FACILITY_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
+                    {FACILITY_TYPES.map(
+                      (type) => (
+                        <option
+                          key={type}
+                          value={type}
+                        >
+                          {type}
+                        </option>
+                      )
+                    )}
                   </select>
                 </div>
+
               </div>
             </section>
 
-            {/* Location */}
+            {/* =================================================
+                FACILITY LOCATION
+                ================================================= */}
+
             <section className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+
               <h2 className="text-xl font-bold text-[#102119]">
                 Facility Location
               </h2>
@@ -383,17 +562,15 @@ function VendorRegistration() {
               </p>
 
               <div className="mt-6 space-y-5">
-                <Field
-                  label="Address"
-                  name="address"
-                  value={form.address}
-                  onChange={handleChange}
-                  placeholder="Complete facility address"
-                  required
-                  icon={<MapPin size={17} />}
-                />
+
+                {/* =================================================
+                    CITY + STATE
+                    ================================================= */}
 
                 <div className="grid gap-5 sm:grid-cols-2">
+
+                  {/* CITY */}
+
                   <Field
                     label="City"
                     name="city"
@@ -401,9 +578,11 @@ function VendorRegistration() {
                     onChange={handleChange}
                     placeholder="City"
                     required
+                    inputClassName="h-12"
                   />
 
-                  {/* State Dropdown */}
+                  {/* STATE */}
+
                   <div>
                     <label className="mb-2 block text-sm font-semibold text-slate-700">
                       State
@@ -414,20 +593,30 @@ function VendorRegistration() {
                       value={form.state}
                       onChange={handleChange}
                       required
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                      className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-100"
                     >
                       <option value="">
                         Select state
                       </option>
 
-                      {INDIAN_STATES.map((state) => (
-                        <option key={state} value={state}>
-                          {state}
-                        </option>
-                      ))}
+                      {INDIAN_STATES.map(
+                        (state) => (
+                          <option
+                            key={state}
+                            value={state}
+                          >
+                            {state}
+                          </option>
+                        )
+                      )}
                     </select>
                   </div>
+
                 </div>
+
+                {/* =================================================
+                    PIN CODE
+                    ================================================= */}
 
                 <Field
                   label="PIN Code"
@@ -436,49 +625,68 @@ function VendorRegistration() {
                   onChange={handleChange}
                   placeholder="6 digit PIN code"
                   required
+                  inputClassName="h-12"
                 />
 
-                {/* GPS */}
+                {/* =================================================
+                    ADDRESS + USE MY LOCATION
+                    ================================================= */}
+
                 <div>
-                  <div className="mb-2 flex items-center justify-between">
+
+                  <div className="mb-2 flex items-center justify-between gap-3">
+
                     <label className="text-sm font-semibold text-slate-700">
-                      GPS Coordinates
+                      Address
                     </label>
 
                     <button
                       type="button"
                       onClick={getCurrentLocation}
-                      className="text-sm font-semibold text-[#0b8f4d] hover:underline"
+                      disabled={locationLoading}
+                      className="shrink-0 text-sm font-semibold text-[#0b8f4d] transition hover:underline disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      Use my location
+                      {locationLoading
+                        ? "Fetching location..."
+                        : "Use my location"}
                     </button>
+
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <input
-                      name="latitude"
-                      value={form.latitude}
-                      onChange={handleChange}
-                      placeholder="Latitude"
-                      required
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                  <div className="relative">
+
+                    <MapPin
+                      size={17}
+                      className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                     />
 
                     <input
-                      name="longitude"
-                      value={form.longitude}
+                      type="text"
+                      name="address"
+                      value={form.address}
                       onChange={handleChange}
-                      placeholder="Longitude"
+                      placeholder="Complete facility address"
                       required
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                      className="h-12 w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-100"
                     />
+
                   </div>
+
+                  <p className="mt-2 text-xs text-slate-400">
+                    Use your current location to automatically fill your address, city, state and PIN code.
+                  </p>
+
                 </div>
+
               </div>
             </section>
 
-            {/* Waste Categories */}
+            {/* =================================================
+                ACCEPTED WASTE
+                ================================================= */}
+
             <section className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+
               <h2 className="text-xl font-bold text-[#102119]">
                 Accepted Waste
               </h2>
@@ -488,30 +696,46 @@ function VendorRegistration() {
               </p>
 
               <div className="mt-5 flex flex-wrap gap-3">
-                {WASTE_TYPES.map((waste) => {
-                  const selected = acceptedWaste.includes(waste)
 
-                  return (
-                    <button
-                      key={waste}
-                      type="button"
-                      onClick={() => handleWasteToggle(waste)}
-                      className={`rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
-                        selected
-                          ? "border-green-500 bg-green-50 text-[#0b8f4d]"
-                          : "border-slate-200 bg-white text-slate-600 hover:border-green-300 hover:bg-green-50"
-                      }`}
-                    >
-                      {selected && "✓ "}
-                      {waste}
-                    </button>
-                  )
-                })}
+                {WASTE_TYPES.map(
+                  (waste) => {
+                    const selected =
+                      acceptedWaste.includes(
+                        waste
+                      )
+
+                    return (
+                      <button
+                        key={waste}
+                        type="button"
+                        onClick={() =>
+                          handleWasteToggle(
+                            waste
+                          )
+                        }
+                        className={`rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
+                          selected
+                            ? "border-green-500 bg-green-50 text-[#0b8f4d]"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-green-300 hover:bg-green-50"
+                        }`}
+                      >
+                        {selected &&
+                          "✓ "}
+                        {waste}
+                      </button>
+                    )
+                  }
+                )}
+
               </div>
             </section>
 
-            {/* Description */}
+            {/* =================================================
+                ADDITIONAL INFORMATION
+                ================================================= */}
+
             <section className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+
               <h2 className="text-xl font-bold text-[#102119]">
                 Additional Information
               </h2>
@@ -528,21 +752,44 @@ function VendorRegistration() {
                 placeholder="Tell us about your facility, operating hours, services, certifications, etc."
                 className="mt-5 w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-100"
               />
+
             </section>
+
           </div>
 
-          {/* Error */}
+          {/* =================================================
+              ERROR
+              ================================================= */}
+
           {error && (
-            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            <div
+              className={`mt-6 rounded-xl border px-4 py-3 text-sm font-medium ${
+                error.includes(
+                  "Location detected"
+                ) ||
+                error.includes(
+                  "Location found"
+                )
+                  ? "border-yellow-200 bg-yellow-50 text-yellow-700"
+                  : "border-red-200 bg-red-50 text-red-700"
+              }`}
+            >
               {error}
             </div>
           )}
 
-          {/* Submit */}
+          {/* =================================================
+              SUBMIT
+              ================================================= */}
+
           <div className="mt-8 flex justify-end">
+
             <button
               type="submit"
-              disabled={submitting}
+              disabled={
+                submitting ||
+                locationLoading
+              }
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0b8f4d] px-7 py-4 font-semibold text-white shadow-xl shadow-green-800/20 transition hover:-translate-y-0.5 hover:bg-[#087b42] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting ? (
@@ -554,12 +801,17 @@ function VendorRegistration() {
                 </>
               )}
             </button>
+
           </div>
         </form>
       </div>
     </main>
   )
 }
+
+/* =========================================================
+   REUSABLE FIELD
+   ========================================================= */
 
 function Field({
   label,
@@ -570,14 +822,17 @@ function Field({
   type = "text",
   required = false,
   icon,
+  inputClassName = "",
 }) {
   return (
     <div>
+
       <label className="mb-2 block text-sm font-semibold text-slate-700">
         {label}
       </label>
 
       <div className="relative">
+
         {icon && (
           <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
             {icon}
@@ -591,10 +846,13 @@ function Field({
           onChange={onChange}
           placeholder={placeholder}
           required={required}
-          className={`w-full rounded-xl border border-slate-200 py-3 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-100 ${
-            icon ? "pl-11 pr-4" : "px-4"
+          className={`w-full rounded-xl border border-slate-200 bg-white py-3 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-100 ${inputClassName} ${
+            icon
+              ? "pl-11 pr-4"
+              : "px-4"
           }`}
         />
+
       </div>
     </div>
   )
