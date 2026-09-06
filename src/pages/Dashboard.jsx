@@ -99,8 +99,8 @@ function Dashboard() {
               </div>
 
               <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">
-                Welcome back, {userName} ðŸ‘‹
-              </h1>
+  Welcome back, {userName} 👋
+</h1>
 
               <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 sm:text-base">
                 Your small actions create a cleaner, greener future.
@@ -341,7 +341,7 @@ function Dashboard() {
             {/* MARKETPLACE */}
             <Link
               to="/redeem"
-              className="group relative h-[220px] overflow-hidden rounded-3xl border border-emerald-400/20 bg-gradient-to-br from-[#064e3b] via-[#086b4a] to-[#043b2d] p-5 text-white shadow-lg shadow-emerald-950/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+              className="group relative h-[220px] overflow-hidden rounded-3xl border border-red-400/20 bg-gradient-to-br from-[#5c1010] via-[#7a1717] to-[#3d0808] p-5 text-white shadow-lg shadow-red-950/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
             >
 
               <div className="pointer-events-none absolute -right-14 -top-14 h-40 w-40 rounded-full bg-emerald-300/10 transition-transform duration-500 group-hover:scale-110" />
@@ -724,6 +724,13 @@ function Dashboard() {
           </div>
 
         </section>
+
+        {/* =====================================================
+    ECO VIDEO FEED
+   ===================================================== */}
+<section className="mt-8 mb-8">
+  <EcoVideoFeed />
+</section>
 
 
         {/* ECO VIDEO FEED */}
