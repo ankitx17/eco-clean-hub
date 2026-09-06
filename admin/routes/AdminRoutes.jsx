@@ -13,7 +13,9 @@ import Vendors from "../pages/Vendors"
 import Facilities from "../pages/Facilities"
 import Verifications from "../pages/Verifications"
 import Credits from "../pages/Credits"
-import VideoReview from "../pages/VideoReview"`r`nimport GreenFundRequests from "../pages/GreenFundRequests"`r`nimport CommunityEventsAdmin from "../pages/CommunityEventsAdmin"
+import VideoReview from "../pages/VideoReview"
+import GreenFundRequests from "../pages/GreenFundRequests"
+import CommunityEventsAdmin from "../pages/CommunityEventsAdmin"
 
 function AdminRoutes() {
   const {
