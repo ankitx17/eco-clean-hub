@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import useAuth from "../hooks/useAuth"
 import {
   ArrowLeft,
@@ -287,7 +287,7 @@ function getInitials(name) {
 function AppLogo() {
   return (
     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-white shadow-inner ring-1 ring-white/20">
-      <span className="text-xl">ðŸŒ¿</span>
+      <span className="text-xl">🌿</span>
     </div>
   )
 }
@@ -848,8 +848,8 @@ function VideoPlayerModal({ video, onClose }) {
             </p>
 
             <p className="mt-1 text-xs text-slate-400">
-              {video.creator} Â· {video.category}
-              {video.location ? ` Â· ${video.location}` : ""}
+              {video.creator} · {video.category}
+              {video.location ? ` · ${video.location}` : ""}
             </p>
           </div>
 
@@ -1282,7 +1282,6 @@ export default function EcoVideoHub() {
 
   function handleApproveVideo(amount) {
     if (!isAdmin) return
-    if (!isAdmin) return
     if (!verifyingVideo) {
       return
     }
@@ -1441,7 +1440,7 @@ export default function EcoVideoHub() {
                   onWatch={setWatchingVideo}
                   onVerify={setVerifyingVideo}
                   canVerify={isAdmin}
-                  canVerify={isAdmin}
+                
                 />
               ))}
             </div>
@@ -1589,6 +1588,8 @@ export default function EcoVideoHub() {
     </div>
   )
 }
+
+
 
 
 
