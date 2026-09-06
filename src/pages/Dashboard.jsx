@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   Sparkles,
+  Trophy,
 } from "lucide-react"
 
 import { Link } from "react-router-dom"
@@ -117,19 +118,18 @@ function Dashboard() {
 
 
         {/* MISSION, SCAN, DONATION & FUNDING ACTIONS */}
-        <section className="mb-7 grid gap-4 sm:grid-cols-2 sm:mb-8">
-
+        <section className="mb-7 grid gap-4 sm:mb-8 sm:grid-cols-2">
 
           {/* START A MISSION */}
           <Link
             to="/missions"
-            className="group relative overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
+            className="group relative h-[150px] overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
           >
 
             <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
 
 
-            <div className="relative flex items-center justify-between">
+            <div className="relative flex h-full items-center justify-between">
 
               <div className="flex items-center gap-4">
 
@@ -143,7 +143,6 @@ function Dashboard() {
                   <h3 className="text-lg font-extrabold text-white">
                     Start a Mission
                   </h3>
-
 
                   <p className="mt-1 text-sm text-green-50">
                     Take part in eco-friendly activities and earn Eco-Credits
@@ -177,13 +176,13 @@ function Dashboard() {
           {/* SCAN WASTE */}
           <Link
             to="/scanner"
-            className="group relative overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
+            className="group relative h-[150px] overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
           >
 
             <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
 
 
-            <div className="relative flex items-center justify-between">
+            <div className="relative flex h-full items-center justify-between">
 
               <div className="flex items-center gap-4">
 
@@ -231,7 +230,7 @@ function Dashboard() {
           {/* DONATION & GREEN FUND */}
           <Link
             to="/donation"
-            className="group relative overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
+            className="group relative h-[150px] overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
           >
 
             <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
@@ -239,7 +238,7 @@ function Dashboard() {
             <div className="pointer-events-none absolute -bottom-12 -left-8 h-28 w-28 rounded-full bg-white/10" />
 
 
-            <div className="relative flex items-center justify-between">
+            <div className="relative flex h-full items-center justify-between">
 
               <div className="flex items-center gap-4">
 
@@ -287,7 +286,7 @@ function Dashboard() {
           {/* REQUEST GREEN FUND */}
           <Link
             to="/funding-request"
-            className="group relative overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#176b45] via-[#138a50] to-[#0d5d3b] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
+            className="group relative h-[150px] overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#176b45] via-[#138a50] to-[#0d5d3b] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
           >
 
             <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10" />
@@ -295,7 +294,7 @@ function Dashboard() {
             <div className="pointer-events-none absolute -bottom-12 -left-8 h-28 w-28 rounded-full bg-white/10" />
 
 
-            <div className="relative flex items-center justify-between">
+            <div className="relative flex h-full items-center justify-between">
 
               <div className="flex min-w-0 items-center gap-4">
 
@@ -304,12 +303,7 @@ function Dashboard() {
                 </div>
 
 
-                <div className="min-w-0">
-
-                  <div className="mb-1 inline-flex items-center rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-green-50">
-                    Green Fund
-                  </div>
-
+                <div className="min-w-0">                                        
 
                   <h3 className="text-lg font-extrabold text-white">
                     Request Green Fund
@@ -358,87 +352,159 @@ function Dashboard() {
         </section>
 
 
-        {/* ECO MARKETPLACE */}
+        {/* ECO MARKETPLACE, LEADERBOARD & CERTIFICATE */}
         <section className="mb-8">
 
-          <Link
-            to="/redeem"
-            className="group relative flex items-center justify-between overflow-hidden rounded-2xl border border-[#dfeae3] bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#bcd8c7] hover:shadow-lg sm:p-6"
-          >
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
 
-            {/* Decorative circle */}
-            <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[#edf8f1]" />
+            {/* ECO MARKETPLACE */}
+            <Link
+              to="/redeem"
+              className="group relative h-[176px] overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
+            >
 
+              <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
 
-            <div className="relative flex min-w-0 items-center gap-4">
+              <div className="relative flex h-full flex-col justify-between">
 
-              {/* ICON */}
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#edf8f1] text-[#176b45] transition duration-300 group-hover:bg-[#176b45] group-hover:text-white">
-                <ShoppingBag size={26} />
-              </div>
+                <div className="flex items-center justify-between">
 
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#176b45] transition duration-300 group-hover:scale-105">
+                    <ShoppingBag size={23} />
+                  </div>
 
-              {/* TEXT */}
-              <div className="min-w-0">
-
-                <div className="flex items-center gap-2">
-
-                  <h3 className="text-lg font-bold text-[#14231a]">
-                    Eco Marketplace
-                  </h3>
-
-
-                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-[#176b45]">
-                    REDEEM
-                  </span>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-white group-hover:text-[#176b45]">
+                    <ArrowRight
+                      size={18}
+                      className="transition group-hover:translate-x-1"
+                    />
+                  </div>
 
                 </div>
 
+                <div>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  Use your Eco Credits to redeem exciting rewards
-                </p>
+                  <div className="flex items-center gap-2">
 
+                    <h3 className="text-lg font-bold text-white">
+                      Eco Marketplace
+                    </h3>
 
-                <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white">
+                      REDEEM
+                    </span>
 
-                  <span className="rounded-full bg-[#edf8f1] px-3 py-1 text-xs font-semibold text-[#176b45]">
-                    Mobile Recharge
-                  </span>
+                  </div>
 
-
-                  <span className="rounded-full bg-[#edf8f1] px-3 py-1 text-xs font-semibold text-[#176b45]">
-                    Amazon
-                  </span>
-
-
-                  <span className="rounded-full bg-[#edf8f1] px-3 py-1 text-xs font-semibold text-[#176b45]">
-                    Flipkart
-                  </span>
-
-
-                  <span className="rounded-full bg-[#edf8f1] px-3 py-1 text-xs font-semibold text-[#176b45]">
-                    Mystery Box
-                  </span>
+                  <p className="mt-1 text-sm leading-5 text-green-50">
+                    Use your Eco Credits to redeem exciting rewards
+                  </p>
 
                 </div>
 
               </div>
 
-            </div>
+            </Link>
 
+            {/* LEADERBOARD */}
+            <Link
+              to="/leaderboard"
+              className="group relative h-[176px] overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
+            >
 
-            {/* ARROW */}
-            <div className="relative ml-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#edf8f1] text-[#176b45] transition duration-300 group-hover:bg-[#176b45] group-hover:text-white">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
 
-              <ArrowRight
-                size={20}
-                className="transition group-hover:translate-x-1"
-              />
+              <div className="relative flex h-full flex-col justify-between">
 
-            </div>
+                <div className="flex items-center justify-between">
 
-          </Link>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#176b45] transition duration-300 group-hover:scale-105">
+                    <Trophy size={23} />
+                  </div>
+
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-white group-hover:text-[#176b45]">
+                    <ArrowRight
+                      size={18}
+                      className="transition group-hover:translate-x-1"
+                    />
+                  </div>
+
+                </div>
+
+                <div>
+
+                  <div className="flex items-center gap-2">
+
+                    <h3 className="text-lg font-bold text-white">
+                      Leaderboard
+                    </h3>
+
+                    <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white">
+                      RANK
+                    </span>
+
+                  </div>
+
+                  <p className="mt-1 text-sm leading-5 text-green-50">
+                    See your position and compete with the community
+                  </p>
+
+                </div>
+
+              </div>
+
+            </Link>
+
+            {/* CERTIFICATE */}
+            <Link
+              to="/certificate"
+              className="group relative h-[176px] overflow-hidden rounded-2xl border border-[#4caf72] bg-gradient-to-br from-[#219653] to-[#11663e] p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:p-6"
+            >
+
+              <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10" />
+
+              <div className="relative flex h-full flex-col justify-between">
+
+                <div className="flex items-center justify-between">
+
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#176b45] transition duration-300 group-hover:scale-105">
+                    <FileText size={23} />
+                  </div>
+
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition duration-300 group-hover:bg-white group-hover:text-[#176b45]">
+                    <ArrowRight
+                      size={18}
+                      className="transition group-hover:translate-x-1"
+                    />
+                  </div>
+
+                </div>
+
+                <div>
+
+                  <div className="flex items-center gap-2">
+
+                    <h3 className="text-lg font-bold text-white">
+                      Certificate
+                    </h3>
+
+                    <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white">
+                      SOON
+                    </span>
+
+                  </div>
+
+                  <p className="mt-1 text-sm leading-5 text-green-50">
+                    Earn and download certificates for your eco impact
+                  </p>
+
+                </div>
+
+              </div>
+
+            </Link>
+
+          </div>
 
         </section>
 

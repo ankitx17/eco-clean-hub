@@ -7,19 +7,24 @@ import {
 } from "lucide-react"
 import { useEffect, useState } from "react"
 
+import useAuth from "../../hooks/useAuth"
+import { getCreditBalance } from "../../services/creditService"
+
 function DashboardStats() {
+  const { user } = useAuth()
+
   const [credits, setCredits] = useState(0)
   const [wasteRecycled, setWasteRecycled] = useState(0)
   const [verifiedActions, setVerifiedActions] = useState(0)
 
   useEffect(() => {
     const loadStats = () => {
-      const savedCredits = localStorage.getItem("ecoCredits")
       const savedWaste = localStorage.getItem("wasteRecycled")
       const savedActions = localStorage.getItem("verifiedActions")
 
+      // Eco-Credits come from the same source as Eco-Credits Wallet
       setCredits(
-        savedCredits !== null ? Number(savedCredits) : 0
+        user?.uid ? getCreditBalance(user.uid) : 0
       )
 
       setWasteRecycled(
@@ -35,12 +40,20 @@ function DashboardStats() {
 
     window.addEventListener("storage", loadStats)
     window.addEventListener("focus", loadStats)
+    window.addEventListener(
+      "eco-clean-hub-credits-updated",
+      loadStats
+    )
 
     return () => {
       window.removeEventListener("storage", loadStats)
       window.removeEventListener("focus", loadStats)
+      window.removeEventListener(
+        "eco-clean-hub-credits-updated",
+        loadStats
+      )
     }
-  }, [])
+  }, [user?.uid])
 
   return (
     <section className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -49,6 +62,7 @@ function DashboardStats() {
       <div className="rounded-2xl border border-[#dfeae3] bg-white p-5 shadow-sm">
 
         <div className="mb-5 flex items-start justify-between">
+
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-50 text-[#176b45]">
             <WalletCards size={21} />
           </div>
@@ -57,6 +71,7 @@ function DashboardStats() {
             <TrendingUp size={12} />
             +12%
           </span>
+
         </div>
 
         <p className="text-sm text-slate-500">
@@ -64,6 +79,7 @@ function DashboardStats() {
         </p>
 
         <div className="mt-1 flex items-end gap-2">
+
           <h2 className="text-3xl font-bold">
             {credits.toLocaleString()}
           </h2>
@@ -71,6 +87,7 @@ function DashboardStats() {
           <span className="mb-1 text-xs text-slate-400">
             credits
           </span>
+
         </div>
 
       </div>
@@ -87,6 +104,7 @@ function DashboardStats() {
         </p>
 
         <div className="mt-1 flex items-end gap-2">
+
           <h2 className="text-3xl font-bold">
             {wasteRecycled.toFixed(1)}
           </h2>
@@ -94,6 +112,7 @@ function DashboardStats() {
           <span className="mb-1 text-xs text-slate-400">
             kg
           </span>
+
         </div>
 
         <p className="mt-2 text-xs text-green-600">
@@ -114,6 +133,7 @@ function DashboardStats() {
         </p>
 
         <div className="mt-1 flex items-end gap-2">
+
           <h2 className="text-3xl font-bold">
             {verifiedActions}
           </h2>
@@ -121,6 +141,7 @@ function DashboardStats() {
           <span className="mb-1 text-xs text-slate-400">
             actions
           </span>
+
         </div>
 
         <p className="mt-2 text-xs text-green-600">
@@ -141,6 +162,7 @@ function DashboardStats() {
         </p>
 
         <div className="mt-1 flex items-end gap-2">
+
           <h2 className="text-3xl font-bold">
             #24
           </h2>
@@ -148,6 +170,7 @@ function DashboardStats() {
           <span className="mb-1 text-xs text-slate-400">
             this month
           </span>
+
         </div>
 
         <p className="mt-2 text-xs text-green-600">
