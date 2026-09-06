@@ -13,8 +13,7 @@ import Vendors from "../pages/Vendors"
 import Facilities from "../pages/Facilities"
 import Verifications from "../pages/Verifications"
 import Credits from "../pages/Credits"
-import VideoReview from "../pages/VideoReview"
-import GreenFundRequests from "../pages/GreenFundRequests"
+import VideoReview from "../pages/VideoReview"`r`nimport GreenFundRequests from "../pages/GreenFundRequests"`r`nimport CommunityEventsAdmin from "../pages/CommunityEventsAdmin"
 
 function AdminRoutes() {
   const {
@@ -156,8 +155,13 @@ function AdminRoutes() {
         />
 
         {/* =================================================
-            Unknown Admin Route
+            Community Events
             ================================================= */}
+
+        <Route
+          path="community-events"
+          element={<CommunityEventsAdmin />}
+        />
 
         <Route
           path="*"
@@ -175,3 +179,4 @@ function AdminRoutes() {
 }
 
 export default AdminRoutes
+

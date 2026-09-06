@@ -1,4 +1,4 @@
-﻿import {
+import {
   ArrowRight,
   ArrowUpRight,
   Camera,
@@ -24,6 +24,7 @@ import DashboardHeader from "../components/dashboard/DashboardHeader"
 import DashboardStats from "../components/dashboard/DashboardStats"
 import ImpactAnalytics from "../components/dashboard/ImpactAnalytics"
 import EcoVideoFeed from "../components/dashboard/EcoVideoFeed"
+import CommunityEvents from "../components/community-events/CommunityEvents"
 
 function Dashboard() {
   const { user } = useAuth()
@@ -99,8 +100,8 @@ function Dashboard() {
               </div>
 
               <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">
-  Welcome back, {userName} 👋
-</h1>
+                Welcome back, {userName} ??
+              </h1>
 
               <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 sm:text-base">
                 Your small actions create a cleaner, greener future.
@@ -734,8 +735,10 @@ function Dashboard() {
 
 
         {/* ECO VIDEO FEED */}
-        {/* ECO VIDEO FEED */}
-        <EcoVideoFeed />
+        {/* ECO VIDEO FEED */}        {/* COMMUNITY EVENTS */}
+        <section className="mt-8 mb-8">
+          <CommunityEvents />
+        </section>
         {/* =====================================================
             FINAL CTA
            ===================================================== */}
@@ -783,6 +786,10 @@ function Dashboard() {
 }
 
 export default Dashboard
+
+
+
+
 
 
 

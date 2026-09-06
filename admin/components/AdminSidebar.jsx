@@ -10,6 +10,7 @@ import {
   Users,
   HandCoins,
   PlayCircle,
+  CalendarDays,
 } from "lucide-react"
 
 import {
@@ -68,6 +69,12 @@ function AdminSidebar() {
       label: "Eco Video Review",
       path: "/admin/video-review",
       icon: PlayCircle,
+    },
+
+    {
+      label: "Community Events",
+      path: "/admin/community-events",
+      icon: CalendarDays,
     },
 
     {
@@ -205,3 +212,6 @@ function AdminSidebar() {
 
 
 export default AdminSidebar
+
+
+
