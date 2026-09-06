@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+
 import {
   Activity,
   Building2,
@@ -20,6 +21,8 @@ function Dashboard() {
 
   const [totalUsers, setTotalUsers] = useState(0)
   const [totalVendors, setTotalVendors] = useState(0)
+  const [verifiedActions, setVerifiedActions] = useState(0)
+
   const [loadingStats, setLoadingStats] = useState(true)
 
   useEffect(() => {
@@ -27,9 +30,9 @@ function Dashboard() {
       try {
         setLoadingStats(true)
 
-        /* ================================
+        /* =================================
            TOTAL USERS
-           ================================ */
+           ================================= */
 
         const usersSnapshot = await getDocs(
           collection(db, "users")
@@ -37,15 +40,11 @@ function Dashboard() {
 
         setTotalUsers(usersSnapshot.size)
 
-
-        /* ================================
+        /* =================================
            TOTAL VENDORS / FACILITIES
-           ================================
-
+           
            Approved vendors become facilities.
-           Therefore dashboard vendor count
-           comes from the facilities collection.
-        */
+           ================================= */
 
         const facilitiesSnapshot = await getDocs(
           collection(db, "facilities")
@@ -53,6 +52,24 @@ function Dashboard() {
 
         setTotalVendors(facilitiesSnapshot.size)
 
+        /* =================================
+           VERIFIED ACTIONS
+
+           cleanupSubmissions
+           status === "approved"
+           ================================= */
+
+        const cleanupSnapshot = await getDocs(
+          collection(db, "cleanupSubmissions")
+        )
+
+        const approvedCleanupCount =
+          cleanupSnapshot.docs.filter(
+            (document) =>
+              document.data()?.status === "approved"
+          ).length
+
+        setVerifiedActions(approvedCleanupCount)
       } catch (error) {
         console.error(
           "Failed to load dashboard stats:",
@@ -73,21 +90,24 @@ function Dashboard() {
       icon: Users,
       description: "Registered citizens",
     },
+
     {
       title: "Total Vendors",
       value: loadingStats ? "..." : totalVendors,
       icon: Building2,
       description: "Approved facilities",
     },
+
     {
       title: "Eco-Credits",
       value: "0",
       icon: Coins,
       description: "Credits issued",
     },
+
     {
       title: "Verified Actions",
-      value: "0",
+      value: loadingStats ? "..." : verifiedActions,
       icon: CheckCircle2,
       description: "Verified waste actions",
     },
@@ -95,7 +115,9 @@ function Dashboard() {
 
   return (
     <div>
-      {/* Page Header */}
+      {/* =================================
+          PAGE HEADER
+          ================================= */}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -124,8 +146,9 @@ function Dashboard() {
         </div>
       </div>
 
-
-      {/* Stats */}
+      {/* =================================
+          STATS
+          ================================= */}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map(
@@ -163,12 +186,15 @@ function Dashboard() {
         )}
       </div>
 
-
-      {/* Main Content */}
+      {/* =================================
+          MAIN CONTENT
+          ================================= */}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.5fr_1fr]">
 
-        {/* Recent Activity */}
+        {/* =================================
+            RECENT ACTIVITY
+            ================================= */}
 
         <section className="rounded-3xl border border-[#dce9e1] bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
@@ -204,8 +230,9 @@ function Dashboard() {
           </div>
         </section>
 
-
-        {/* Pending Actions */}
+        {/* =================================
+            PENDING ACTIONS
+            ================================= */}
 
         <section className="rounded-3xl border border-[#dce9e1] bg-white p-6 shadow-sm">
           <h2 className="text-lg font-black text-[#14231a]">
@@ -217,6 +244,8 @@ function Dashboard() {
           </p>
 
           <div className="mt-6 space-y-3">
+
+            {/* Vendor Applications */}
 
             <div className="flex items-center justify-between rounded-2xl bg-[#f8fbf9] p-4">
               <div>
@@ -234,6 +263,7 @@ function Dashboard() {
               </span>
             </div>
 
+            {/* Verifications */}
 
             <div className="flex items-center justify-between rounded-2xl bg-[#f8fbf9] p-4">
               <div>
@@ -251,6 +281,7 @@ function Dashboard() {
               </span>
             </div>
 
+            {/* Reward Redemptions */}
 
             <div className="flex items-center justify-between rounded-2xl bg-[#f8fbf9] p-4">
               <div>
@@ -270,7 +301,6 @@ function Dashboard() {
 
           </div>
         </section>
-
       </div>
     </div>
   )

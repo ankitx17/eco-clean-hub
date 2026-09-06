@@ -11,6 +11,8 @@ import Dashboard from "../pages/Dashboard"
 import Users from "../pages/Users"
 import Vendors from "../pages/Vendors"
 import Facilities from "../pages/Facilities"
+import Verifications from "../pages/Verifications"
+import Credits from "../pages/Credits"
 
 
 function AdminRoutes() {
@@ -21,9 +23,9 @@ function AdminRoutes() {
   } = useAdminAuth()
 
 
-  /* =====================================================
-     CHECKING AUTH
-     ===================================================== */
+  // =====================================================
+  // CHECKING ADMIN AUTH
+  // =====================================================
 
   if (loading) {
     return (
@@ -32,11 +34,9 @@ function AdminRoutes() {
         <div className="flex flex-col items-center gap-4">
 
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0b8f4d] text-white shadow-lg">
-
             <span className="text-2xl">
               🌿
             </span>
-
           </div>
 
           <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
@@ -56,9 +56,9 @@ function AdminRoutes() {
   }
 
 
-  /* =====================================================
-     NOT LOGGED IN
-     ===================================================== */
+  // =====================================================
+  // NOT LOGGED IN
+  // =====================================================
 
   if (!user) {
     return (
@@ -70,9 +70,9 @@ function AdminRoutes() {
   }
 
 
-  /* =====================================================
-     NOT ADMIN
-     ===================================================== */
+  // =====================================================
+  // NOT ADMIN
+  // =====================================================
 
   if (!isAdmin) {
     return (
@@ -84,17 +84,18 @@ function AdminRoutes() {
   }
 
 
-  /* =====================================================
-     ADMIN ROUTES
-     ===================================================== */
+  // =====================================================
+  // ADMIN ROUTES
+  // =====================================================
 
   return (
     <Routes>
 
-      <Route element={<AdminLayout />}>
+      <Route
+        element={<AdminLayout />}
+      >
 
         {/* Dashboard */}
-
         <Route
           path="dashboard"
           element={<Dashboard />}
@@ -102,7 +103,6 @@ function AdminRoutes() {
 
 
         {/* Users */}
-
         <Route
           path="users"
           element={<Users />}
@@ -110,7 +110,6 @@ function AdminRoutes() {
 
 
         {/* Vendors */}
-
         <Route
           path="vendors"
           element={<Vendors />}
@@ -118,18 +117,27 @@ function AdminRoutes() {
 
 
         {/* Facilities */}
-
         <Route
           path="facilities"
           element={<Facilities />}
         />
 
 
-        {/* Future admin pages will be added here */}
+        {/* Cleanup Verifications */}
+        <Route
+          path="verifications"
+          element={<Verifications />}
+        />
 
 
-        {/* Unknown admin route */}
+        {/* Eco-Credits */}
+        <Route
+          path="credits"
+          element={<Credits />}
+        />
 
+
+        {/* Unknown Admin Route */}
         <Route
           path="*"
           element={
