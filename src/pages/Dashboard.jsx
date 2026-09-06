@@ -1,4 +1,4 @@
-import {
+﻿import {
   ArrowRight,
   ArrowUpRight,
   Camera,
@@ -23,6 +23,7 @@ import EcoCreditsCard from "../components/dashboard/EcoCreditsCard"
 import DashboardHeader from "../components/dashboard/DashboardHeader"
 import DashboardStats from "../components/dashboard/DashboardStats"
 import ImpactAnalytics from "../components/dashboard/ImpactAnalytics"
+import EcoVideoFeed from "../components/dashboard/EcoVideoFeed"
 
 function Dashboard() {
   const { user } = useAuth()
@@ -98,7 +99,7 @@ function Dashboard() {
               </div>
 
               <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">
-                Welcome back, {userName} 👋
+                Welcome back, {userName} ðŸ‘‹
               </h1>
 
               <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 sm:text-base">

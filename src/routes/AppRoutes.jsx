@@ -20,6 +20,11 @@ const Dashboard = lazy(
   () => import("../pages/Dashboard")
 )
 
+/* NEW: ECO VIDEO HUB */
+const EcoVideoHub = lazy(
+  () => import("../pages/EcoVideoHub")
+)
+
 const RedeemRewards = lazy(
   () => import("../pages/RedeemRewards")
 )
@@ -170,6 +175,12 @@ function AppRoutes() {
           <Route
             path="/dashboard"
             element={<Dashboard />}
+          />
+
+          {/* NEW: ECO VIDEO HUB */}
+          <Route
+            path="/eco-video-hub"
+            element={<EcoVideoHub />}
           />
 
           <Route
