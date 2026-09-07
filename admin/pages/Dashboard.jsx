@@ -22,6 +22,7 @@ function Dashboard() {
 
   const [totalUsers, setTotalUsers] = useState(0)
   const [totalVendors, setTotalVendors] = useState(0)
+  const [ecoCredits, setEcoCredits] = useState(0)
   const [verifiedActions, setVerifiedActions] = useState(0)
 
   const [pendingVendorApplications, setPendingVendorApplications] =
@@ -57,6 +58,43 @@ function Dashboard() {
         )
 
         setTotalVendors(facilitiesSnapshot.size)
+
+        /* =================================
+           ECO-CREDITS
+           Same logic as Eco-Credits page:
+           Sum all positive credit transactions.
+           ================================= */
+
+        const transactionsSnapshot = await getDocs(
+          collection(db, "creditTransactions")
+        )
+
+        const totalIssuedCredits =
+          transactionsSnapshot.docs
+            .filter((document) => {
+              const data = document.data()
+
+              const amount = Number(
+                data?.amount ??
+                  data?.creditsEarned ??
+                  0
+              )
+
+              return amount > 0
+            })
+            .reduce((total, document) => {
+              const data = document.data()
+
+              const amount = Number(
+                data?.amount ??
+                  data?.creditsEarned ??
+                  0
+              )
+
+              return total + amount
+            }, 0)
+
+        setEcoCredits(totalIssuedCredits)
 
         /* =================================
            VENDOR APPLICATIONS
@@ -153,7 +191,9 @@ function Dashboard() {
 
     {
       title: "Eco-Credits",
-      value: "0",
+      value: loadingStats
+        ? "..."
+        : ecoCredits.toLocaleString(),
       icon: Coins,
       description: "Credits issued",
     },
