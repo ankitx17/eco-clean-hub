@@ -23,7 +23,9 @@ import EcoCreditsCard from "../components/dashboard/EcoCreditsCard"
 import DashboardHeader from "../components/dashboard/DashboardHeader"
 import DashboardStats from "../components/dashboard/DashboardStats"
 import ImpactAnalytics from "../components/dashboard/ImpactAnalytics"
+import EnvironmentalImpact from "../components/dashboard/EnvironmentalImpact"
 import EcoVideoFeed from "../components/dashboard/EcoVideoFeed"
+import RecentActivity from "../components/dashboard/RecentActivity"
 import CommunityEvents from "../components/community-events/CommunityEvents"
 
 function Dashboard() {
@@ -33,30 +35,6 @@ function Dashboard() {
     user?.displayName?.trim() ||
     user?.email?.split("@")[0] ||
     "User"
-
-  const activities = [
-    {
-      title: "Plastic bottle recycled",
-      date: "Today, 10:42 AM",
-      credits: "+25",
-      status: "Verified",
-      icon: Recycle,
-    },
-    {
-      title: "Paper waste disposed",
-      date: "Yesterday, 5:18 PM",
-      credits: "+20",
-      status: "Verified",
-      icon: CheckCircle2,
-    },
-    {
-      title: "Organic waste submitted",
-      date: "28 Aug, 8:35 AM",
-      credits: "+30",
-      status: "Pending",
-      icon: Leaf,
-    },
-  ]
 
   const quickActions = [
     {
@@ -508,221 +486,12 @@ function Dashboard() {
         <section className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
 
           {/* ===================================================
-              RECENT ACTIVITY
-             =================================================== */}
-          <div className="relative overflow-hidden rounded-3xl border border-slate-700/60 bg-gradient-to-br from-[#101c18] via-[#12251e] to-[#0b1713] p-5 text-white shadow-xl shadow-black/10 sm:p-6">
+    RECENT ACTIVITY
+   =================================================== */}
 
-            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-emerald-400/10" />
+        <RecentActivity />   
 
-            <div className="pointer-events-none absolute -bottom-20 -left-16 h-40 w-40 rounded-full bg-cyan-400/5" />
-
-            <div className="relative z-10">
-
-              <div className="mb-6 flex items-center justify-between">
-
-                <div className="min-w-0">
-
-                  <div className="flex items-center gap-2">
-
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300">
-                      <Recycle size={18} />
-                    </div>
-
-                    <h2 className="text-xl font-bold tracking-tight text-white">
-                      Recent Activity
-                    </h2>
-
-                  </div>
-
-                  <p className="mt-2 text-sm text-slate-400">
-                    Your latest waste-management actions
-                  </p>
-
-                </div>
-
-                <Link
-                  to="/activity"
-                  className="hidden items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-white/10 sm:flex"
-                >
-                  View all
-                  <ArrowUpRight size={14} />
-                </Link>
-
-              </div>
-
-
-              <div className="space-y-3">
-
-                {activities.map((activity) => {
-
-                  const Icon = activity.icon
-
-                  return (
-                    <div
-                      key={activity.title}
-                      className="group flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.045] p-4 transition-all duration-300 hover:border-emerald-300/20 hover:bg-white/[0.07]"
-                    >
-
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300 transition group-hover:bg-emerald-400/15">
-                        <Icon size={19} />
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-
-                        <h3 className="truncate text-sm font-semibold text-white">
-                          {activity.title}
-                        </h3>
-
-                        <p className="mt-1 truncate text-xs text-slate-500">
-                          {activity.date}
-                        </p>
-
-                      </div>
-
-                      <div className="shrink-0 text-right">
-
-                        <p className="text-sm font-bold text-emerald-300">
-                          {activity.credits}
-                        </p>
-
-                        <span
-                          className={`mt-1 inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${
-                            activity.status === "Verified"
-                              ? "bg-emerald-400/10 text-emerald-300"
-                              : "bg-amber-400/10 text-amber-300"
-                          }`}
-                        >
-                          {activity.status}
-                        </span>
-
-                      </div>
-
-                    </div>
-                  )
-                })}
-
-              </div>
-
-
-              <Link
-                to="/activity"
-                className="mt-5 flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] py-3 text-sm font-semibold text-emerald-300 transition hover:border-emerald-300/20 hover:bg-emerald-400/5"
-              >
-                View All Activity
-                <ArrowUpRight size={15} />
-              </Link>
-
-            </div>
-          </div>
-
-
-          {/* ===================================================
-              ENVIRONMENTAL IMPACT
-             =================================================== */}
-          <div className="relative overflow-hidden rounded-3xl border border-emerald-300/10 bg-gradient-to-br from-[#075b3d] via-[#086b48] to-[#064a34] p-6 text-white shadow-xl shadow-emerald-950/20 sm:p-7">
-
-            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-emerald-300/10" />
-
-            <div className="pointer-events-none absolute -bottom-20 -left-16 h-44 w-44 rounded-full bg-cyan-300/5" />
-
-            <div className="relative z-10">
-
-              <div className="flex items-start justify-between gap-4">
-
-                <div className="min-w-0">
-
-                  <p className="text-sm font-medium text-emerald-100">
-                    Your Environmental Impact
-                  </p>
-
-                  <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-                    Making a difference
-                  </h2>
-
-                </div>
-
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white">
-                  <Leaf size={23} />
-                </div>
-
-              </div>
-
-
-              <div className="my-6 h-px bg-white/15" />
-
-
-              <div className="space-y-6">
-
-                <div>
-
-                  <div className="mb-2 flex items-center justify-between gap-4">
-
-                    <span className="text-sm text-emerald-100">
-                      Waste diverted
-                    </span>
-
-                    <span className="text-sm font-bold text-white">
-                      24.6 kg
-                    </span>
-
-                  </div>
-
-                  <div className="h-2.5 overflow-hidden rounded-full bg-black/20">
-
-                    <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-white to-emerald-200" />
-
-                  </div>
-
-                </div>
-
-
-                <div>
-
-                  <div className="mb-2 flex items-center justify-between gap-4">
-
-                    <span className="text-sm text-emerald-100">
-                      Monthly goal
-                    </span>
-
-                    <span className="text-sm font-bold text-white">
-                      72%
-                    </span>
-
-                  </div>
-
-                  <div className="h-2.5 overflow-hidden rounded-full bg-black/20">
-
-                    <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-white to-emerald-200" />
-
-                  </div>
-
-                </div>
-
-              </div>
-
-
-              <div className="mt-7 rounded-2xl border border-white/10 bg-white/10 p-4">
-
-                <div className="flex items-center gap-2">
-
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-300/10 text-emerald-200">
-                    <TrendingUp size={15} />
-                  </div>
-
-                  <p className="text-xs font-medium text-emerald-100">
-                    Keep going
-                  </p>
-
-                </div>
-
-                <p className="mt-2 text-sm font-semibold leading-6 text-white">
-                  You're on track to beat your monthly recycling goal.
-                </p>
-
-              </div>
-
-            </div>
-          </div>
+        <EnvironmentalImpact />
 
         </section>
 

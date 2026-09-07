@@ -8,7 +8,15 @@ import {
   Target,
 } from "lucide-react"
 
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore"
+
 import useAuth from "../../hooks/useAuth"
+import { db } from "../../services/firebase"
 
 // Project-level deterministic assumptions.
 const ESTIMATED_WEIGHT_KG = {
@@ -34,28 +42,59 @@ function ImpactAnalytics() {
 
   const [activities, setActivities] = useState([])
 
-  const loadActivities = () => {
+  const loadActivities = async () => {
     if (!user?.uid) {
       setActivities([])
       return
     }
 
     try {
-      const activityKey = `eco_clean_hub_activity_${user.uid}`
-
-      const storedActivities = JSON.parse(
-        localStorage.getItem(activityKey) || "[]",
+      // Load cleanup submissions for the logged-in user
+      const submissionsQuery = query(
+        collection(db, "cleanupSubmissions"),
+        where("userId", "==", user.uid)
       )
 
-      setActivities(
-        Array.isArray(storedActivities)
-          ? storedActivities
-          : [],
-      )
+      const snapshot = await getDocs(submissionsQuery)
+
+      const approvedActivities = []
+
+      snapshot.forEach((submissionDoc) => {
+        const data = submissionDoc.data()
+
+        // Only approved cleanup missions should affect impact analytics
+        if (data.status !== "approved") {
+          return
+        }
+
+        let createdAt = null
+
+        if (data.submittedAt?.toDate) {
+          createdAt = data.submittedAt.toDate()
+        } else if (data.submittedAt) {
+          createdAt = new Date(data.submittedAt)
+        } else if (data.verifiedAt?.toDate) {
+          createdAt = data.verifiedAt.toDate()
+        } else if (data.verifiedAt) {
+          createdAt = new Date(data.verifiedAt)
+        }
+
+        approvedActivities.push({
+          ...data,
+
+          // Use the actual wasteKg submitted in the cleanup mission
+          weightKg: Number(data.wasteKg || 0),
+
+          // Normalize Firestore timestamp for existing calculations
+          createdAt,
+        })
+      })
+
+      setActivities(approvedActivities)
     } catch (error) {
       console.error(
         "Failed to load impact activities:",
-        error,
+        error
       )
 
       setActivities([])
@@ -71,33 +110,43 @@ function ImpactAnalytics() {
 
     window.addEventListener(
       "eco-clean-hub-activity-updated",
-      handleActivityUpdate,
+      handleActivityUpdate
+    )
+
+    window.addEventListener(
+      "eco-clean-hub-credits-updated",
+      handleActivityUpdate
     )
 
     window.addEventListener(
       "storage",
-      handleActivityUpdate,
+      handleActivityUpdate
     )
 
     window.addEventListener(
       "focus",
-      handleActivityUpdate,
+      handleActivityUpdate
     )
 
     return () => {
       window.removeEventListener(
         "eco-clean-hub-activity-updated",
-        handleActivityUpdate,
+        handleActivityUpdate
+      )
+
+      window.removeEventListener(
+        "eco-clean-hub-credits-updated",
+        handleActivityUpdate
       )
 
       window.removeEventListener(
         "storage",
-        handleActivityUpdate,
+        handleActivityUpdate
       )
 
       window.removeEventListener(
         "focus",
-        handleActivityUpdate,
+        handleActivityUpdate
       )
     }
   }, [user?.uid])
@@ -166,8 +215,8 @@ function ImpactAnalytics() {
       Math.round(
         (monthlyWasteKg /
           MONTHLY_GOAL_KG) *
-          100,
-      ),
+          100
+      )
     )
 
     return {

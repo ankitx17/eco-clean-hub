@@ -7,57 +7,285 @@ import {
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore"
+
 import useAuth from "../../hooks/useAuth"
+import { db } from "../../services/firebase"
+import { getCreditTransactions } from "../../services/creditService"
 
 function RecentActivity() {
   const { user } = useAuth()
 
   const [activities, setActivities] = useState([])
 
-  const loadActivities = () => {
+  const loadActivities = async () => {
     if (!user?.uid) {
       setActivities([])
       return
     }
 
     try {
-      const key = `eco_clean_hub_activity_${user.uid}`
-      const stored = localStorage.getItem(key)
+      /* ==========================================
+         1. LOAD CLEANUP SUBMISSIONS FROM FIRESTORE
+         ========================================== */
 
-      if (!stored) {
-        setActivities([])
-        return
-      }
+      const submissionsQuery = query(
+        collection(db, "cleanupSubmissions"),
+        where("userId", "==", user.uid)
+      )
 
-      const parsed = JSON.parse(stored)
+      const submissionsSnapshot = await getDocs(
+        submissionsQuery
+      )
 
-      if (!Array.isArray(parsed)) {
-        setActivities([])
-        return
-      }
+      const cleanupActivities = []
 
-      const sortedActivities = [...parsed].sort((a, b) => {
-        const dateA = a?.createdAt
-          ? new Date(a.createdAt).getTime()
-          : 0
+      submissionsSnapshot.forEach((submissionDoc) => {
+        const data = submissionDoc.data()
 
-        const dateB = b?.createdAt
-          ? new Date(b.createdAt).getTime()
-          : 0
+        let createdAt = data.submittedAt
 
-        return dateB - dateA
+        /*
+         Firestore Timestamp -> Date
+        */
+        if (
+          createdAt &&
+          typeof createdAt.toDate === "function"
+        ) {
+          createdAt = createdAt.toDate().toISOString()
+        } else if (createdAt instanceof Date) {
+          createdAt = createdAt.toISOString()
+        }
+
+        /*
+         If submittedAt is missing, use verifiedAt
+         */
+
+        if (
+          !createdAt &&
+          data.verifiedAt
+        ) {
+          if (
+            typeof data.verifiedAt.toDate ===
+            "function"
+          ) {
+            createdAt =
+              data.verifiedAt.toDate().toISOString()
+          } else if (
+            data.verifiedAt instanceof Date
+          ) {
+            createdAt =
+              data.verifiedAt.toISOString()
+          }
+        }
+
+        /*
+         Determine status
+         */
+
+        const status =
+          data.status === "approved"
+            ? "verified"
+            : "pending"
+
+        /*
+         Create cleanup activity
+         */
+
+        cleanupActivities.push({
+          id: submissionDoc.id,
+          type: "cleanup",
+          title:
+            data.mode === "cleanup"
+              ? "Cleanup mission completed"
+              : "Cleanup mission submitted",
+          name:
+            data.mode === "cleanup"
+              ? "Cleanup mission completed"
+              : "Cleanup mission submitted",
+          category:
+            data.terrain ||
+            "Cleanup",
+          createdAt,
+          status,
+          verified:
+            data.status === "approved",
+          credits:
+            data.status === "approved"
+              ? 10
+              : 0,
+          submissionId: submissionDoc.id,
+        })
       })
 
-      setActivities(sortedActivities.slice(0, 4))
+      /* ==========================================
+         2. LOAD ECO-CREDIT TRANSACTIONS
+         ========================================== */
+
+      const transactions =
+        getCreditTransactions(user.uid)
+
+      const creditActivities = Array.isArray(
+        transactions
+      )
+        ? transactions.map((transaction) => {
+            let createdAt =
+              transaction?.createdAt
+
+            /*
+             Support Date / Firestore Timestamp /
+             ISO string formats
+            */
+
+            if (
+              createdAt &&
+              typeof createdAt.toDate ===
+                "function"
+            ) {
+              createdAt =
+                createdAt.toDate().toISOString()
+            } else if (
+              createdAt instanceof Date
+            ) {
+              createdAt =
+                createdAt.toISOString()
+            }
+
+            const amount = Number(
+              transaction?.amount || 0
+            )
+
+            /*
+             Cleanup credit transactions are already
+             represented by cleanup submissions above.
+
+             So don't show them twice.
+            */
+
+            if (
+              transaction?.type === "cleanup"
+            ) {
+              return null
+            }
+
+            let title =
+              transaction?.title ||
+              "Eco-Credit activity"
+
+            let category = "Eco-Credits"
+
+            /*
+             Better titles/categories for scan
+             transactions.
+            */
+
+            if (
+              transaction?.type === "scan"
+            ) {
+              title =
+                transaction?.title ||
+                "Waste scanned"
+
+              category = "Waste Scan"
+            }
+
+            if (
+              transaction?.type ===
+              "redemption"
+            ) {
+              title =
+                transaction?.title ||
+                "Reward redeemed"
+
+              category = "Reward"
+            }
+
+            const verified =
+              transaction?.type ===
+                "scan" ||
+              transaction?.type ===
+                "cleanup" ||
+              transaction?.type ===
+                "earning"
+
+            return {
+              id:
+                transaction?.id ||
+                `credit-${Math.random()}`,
+              type: transaction?.type,
+              title,
+              name: title,
+              category,
+              createdAt,
+              status: verified
+                ? "verified"
+                : "pending",
+              verified,
+              credits:
+                amount > 0 ? amount : 0,
+              amount,
+            }
+          })
+        : []
+
+      /* ==========================================
+         3. COMBINE ALL REAL ACTIVITIES
+         ========================================== */
+
+      const combinedActivities = [
+        ...cleanupActivities,
+        ...creditActivities.filter(
+          Boolean
+        ),
+      ]
+
+      /* ==========================================
+         4. SORT LATEST FIRST
+         ========================================== */
+
+      const sortedActivities =
+        combinedActivities.sort((a, b) => {
+          const dateA = a?.createdAt
+            ? new Date(
+                a.createdAt
+              ).getTime()
+            : 0
+
+          const dateB = b?.createdAt
+            ? new Date(
+                b.createdAt
+              ).getTime()
+            : 0
+
+          return dateB - dateA
+        })
+
+      /*
+       Dashboard shows only the latest 4 activities.
+       View All Activity still opens /activity.
+      */
+
+      setActivities(
+        sortedActivities.slice(0, 4)
+      )
     } catch (error) {
       console.error(
         "Failed to load recent activities:",
-        error,
+        error
       )
 
       setActivities([])
     }
   }
+
+  /* ==========================================
+     LOAD + LISTEN FOR UPDATES
+     ========================================== */
 
   useEffect(() => {
     loadActivities()
@@ -68,39 +296,55 @@ function RecentActivity() {
 
     window.addEventListener(
       "eco-clean-hub-activity-updated",
-      handleUpdate,
+      handleUpdate
+    )
+
+    window.addEventListener(
+      "eco-clean-hub-credits-updated",
+      handleUpdate
     )
 
     window.addEventListener(
       "storage",
-      handleUpdate,
+      handleUpdate
     )
 
     window.addEventListener(
       "focus",
-      handleUpdate,
+      handleUpdate
     )
 
     return () => {
       window.removeEventListener(
         "eco-clean-hub-activity-updated",
-        handleUpdate,
+        handleUpdate
+      )
+
+      window.removeEventListener(
+        "eco-clean-hub-credits-updated",
+        handleUpdate
       )
 
       window.removeEventListener(
         "storage",
-        handleUpdate,
+        handleUpdate
       )
 
       window.removeEventListener(
         "focus",
-        handleUpdate,
+        handleUpdate
       )
     }
   }, [user?.uid])
 
+  /* ==========================================
+     DATE FORMAT
+     ========================================== */
+
   const formatDate = (createdAt) => {
-    if (!createdAt) return "Recently"
+    if (!createdAt) {
+      return "Recently"
+    }
 
     const date = new Date(createdAt)
 
@@ -108,15 +352,24 @@ function RecentActivity() {
       return "Recently"
     }
 
-    return date.toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    })
+    return date.toLocaleDateString(
+      "en-IN",
+      {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }
+    )
   }
 
+  /* ==========================================
+     TIME FORMAT
+     ========================================== */
+
   const formatTime = (createdAt) => {
-    if (!createdAt) return ""
+    if (!createdAt) {
+      return ""
+    }
 
     const date = new Date(createdAt)
 
@@ -124,10 +377,13 @@ function RecentActivity() {
       return ""
     }
 
-    return date.toLocaleTimeString("en-IN", {
-      hour: "numeric",
-      minute: "2-digit",
-    })
+    return date.toLocaleTimeString(
+      "en-IN",
+      {
+        hour: "numeric",
+        minute: "2-digit",
+      }
+    )
   }
 
   return (
@@ -177,7 +433,6 @@ function RecentActivity() {
 
         </div>
 
-
         {/* ================================
             EMPTY STATE
            ================================ */}
@@ -217,113 +472,126 @@ function RecentActivity() {
 
           <div className="space-y-3">
 
-            {activities.map((activity, index) => {
+            {activities.map(
+              (activity, index) => {
 
-              const verified =
-                activity?.status === "verified" ||
-                activity?.status === "Verified" ||
-                activity?.verified === true
+                const verified =
+                  activity?.status ===
+                    "verified" ||
+                  activity?.status ===
+                    "Verified" ||
+                  activity?.verified ===
+                    true
 
-              const credits = Number(
-                activity?.credits || 0,
-              )
+                const credits =
+                  Number(
+                    activity?.credits ||
+                      0
+                  )
 
-              const title =
-                activity?.title ||
-                activity?.name ||
-                `${activity?.category || "Waste"} waste activity`
+                const title =
+                  activity?.title ||
+                  activity?.name ||
+                  `${
+                    activity?.category ||
+                    "Waste"
+                  } waste activity`
 
-              const category =
-                activity?.category ||
-                "Waste"
+                const category =
+                  activity?.category ||
+                  "Waste"
 
-              return (
-                <div
-                  key={
-                    activity?.id ||
-                    `${activity?.createdAt}-${index}`
-                  }
-                  className="group flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.045] p-4 transition-all duration-300 hover:border-emerald-300/20 hover:bg-white/[0.07] hover:shadow-lg hover:shadow-black/10"
-                >
+                return (
+                  <div
+                    key={
+                      activity?.id ||
+                      `${activity?.createdAt}-${index}`
+                    }
+                    className="group flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.045] p-4 transition-all duration-300 hover:border-emerald-300/20 hover:bg-white/[0.07] hover:shadow-lg hover:shadow-black/10"
+                  >
 
-                  {/* ICON */}
+                    {/* ICON */}
 
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300 transition duration-300 group-hover:bg-emerald-400/15">
-                    <Recycle size={20} />
-                  </div>
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300 transition duration-300 group-hover:bg-emerald-400/15">
+                      <Recycle size={20} />
+                    </div>
 
+                    {/* DETAILS */}
 
-                  {/* DETAILS */}
+                    <div className="min-w-0 flex-1">
 
-                  <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-sm font-semibold text-white">
+                        {title}
+                      </h3>
 
-                    <h3 className="truncate text-sm font-semibold text-white">
-                      {title}
-                    </h3>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {category}
+                        {" • "}
+                        {formatDate(
+                          activity?.createdAt
+                        )}
 
-                    <p className="mt-1 text-xs text-slate-500">
-                      {category}
-                      {" • "}
-                      {formatDate(activity?.createdAt)}
-
-                      {formatTime(activity?.createdAt) && (
-                        <>
-                          {" • "}
-                          {formatTime(activity?.createdAt)}
-                        </>
-                      )}
-                    </p>
-
-                  </div>
-
-
-                  {/* RIGHT SIDE */}
-
-                  <div className="shrink-0 text-right">
-
-                    {credits > 0 && (
-                      <p className="text-sm font-bold text-emerald-300">
-                        +{credits}
+                        {formatTime(
+                          activity?.createdAt
+                        ) && (
+                          <>
+                            {" • "}
+                            {formatTime(
+                              activity?.createdAt
+                            )}
+                          </>
+                        )}
                       </p>
-                    )}
 
-                    <div className="mt-1 flex items-center justify-end gap-1">
+                    </div>
 
-                      {verified ? (
-                        <>
-                          <CheckCircle2
-                            size={12}
-                            className="text-emerald-400"
-                          />
+                    {/* RIGHT SIDE */}
 
-                          <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
-                            Verified
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <Clock3
-                            size={12}
-                            className="text-amber-400"
-                          />
+                    <div className="shrink-0 text-right">
 
-                          <span className="rounded-full bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
-                            Pending
-                          </span>
-                        </>
+                      {credits > 0 && (
+                        <p className="text-sm font-bold text-emerald-300">
+                          +{credits}
+                        </p>
                       )}
+
+                      <div className="mt-1 flex items-center justify-end gap-1">
+
+                        {verified ? (
+                          <>
+                            <CheckCircle2
+                              size={12}
+                              className="text-emerald-400"
+                            />
+
+                            <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+                              Verified
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock3
+                              size={12}
+                              className="text-amber-400"
+                            />
+
+                            <span className="rounded-full bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+                              Pending
+                            </span>
+                          </>
+                        )}
+
+                      </div>
 
                     </div>
 
                   </div>
-
-                </div>
-              )
-            })}
+                )
+              }
+            )}
 
           </div>
         )}
-
 
         {/* ================================
             BOTTOM BUTTON
