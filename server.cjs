@@ -3,7 +3,7 @@ const cors = require("cors")
 const multer = require("multer")
 require("dotenv").config()
 const app = express()
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 const GROQ_API_URL =
   "https://api.groq.com/openai/v1/chat/completions"
 
@@ -120,9 +120,30 @@ const upload = multer({
    MIDDLEWARE
 -------------------------------------------------- */
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "https://eco-clean-hub-one.vercel.app",
+]
+
 app.use(
   cors({
-    origin: true,
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true)
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true)
+      }
+
+      return callback(
+        new Error(`CORS blocked origin: ${origin}`),
+      )
+    },
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: false,
   }),
 )
 
@@ -1096,7 +1117,7 @@ app.use(
 
 app.listen(
   PORT,
-  "127.0.0.1",
+  "0.0.0.0",
   () => {
     console.log(
       `Eco Clean Hub AI server running on http://127.0.0.1:${PORT}`,
