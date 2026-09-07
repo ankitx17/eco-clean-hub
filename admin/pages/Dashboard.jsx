@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore"
 
 import useAdminAuth from "../hooks/useAdminAuth"
+
 import { db } from "../../src/services/firebase"
 
 function Dashboard() {
@@ -22,6 +23,12 @@ function Dashboard() {
   const [totalUsers, setTotalUsers] = useState(0)
   const [totalVendors, setTotalVendors] = useState(0)
   const [verifiedActions, setVerifiedActions] = useState(0)
+
+  const [pendingVendorApplications, setPendingVendorApplications] =
+    useState(0)
+
+  const [pendingVerifications, setPendingVerifications] =
+    useState(0)
 
   const [loadingStats, setLoadingStats] = useState(true)
 
@@ -42,7 +49,6 @@ function Dashboard() {
 
         /* =================================
            TOTAL VENDORS / FACILITIES
-           
            Approved vendors become facilities.
            ================================= */
 
@@ -53,23 +59,70 @@ function Dashboard() {
         setTotalVendors(facilitiesSnapshot.size)
 
         /* =================================
-           VERIFIED ACTIONS
+           VENDOR APPLICATIONS
+           Count only pending applications.
+           ================================= */
 
+        const vendorApplicationsSnapshot = await getDocs(
+          collection(db, "vendorApplications")
+        )
+
+        const pendingVendorCount =
+          vendorApplicationsSnapshot.docs.filter(
+            (document) => {
+              const status = String(
+                document.data()?.status || ""
+              )
+                .trim()
+                .toLowerCase()
+
+              return status === "pending"
+            }
+          ).length
+
+        setPendingVendorApplications(
+          pendingVendorCount
+        )
+
+        /* =================================
+           CLEANUP VERIFICATIONS
            cleanupSubmissions
-           status === "approved"
+           status === approved / pending
            ================================= */
 
         const cleanupSnapshot = await getDocs(
           collection(db, "cleanupSubmissions")
         )
 
-        const approvedCleanupCount =
-          cleanupSnapshot.docs.filter(
-            (document) =>
-              document.data()?.status === "approved"
-          ).length
+        let approvedCleanupCount = 0
+        let pendingCleanupCount = 0
 
-        setVerifiedActions(approvedCleanupCount)
+        cleanupSnapshot.docs.forEach((document) => {
+          const data = document.data()
+
+          const status = String(
+            data?.status || ""
+          )
+            .trim()
+            .toLowerCase()
+
+          if (status === "approved") {
+            approvedCleanupCount += 1
+          }
+
+          if (status === "pending") {
+            pendingCleanupCount += 1
+          }
+        })
+
+        setVerifiedActions(
+          approvedCleanupCount
+        )
+
+        setPendingVerifications(
+          pendingCleanupCount
+        )
+
       } catch (error) {
         console.error(
           "Failed to load dashboard stats:",
@@ -259,7 +312,9 @@ function Dashboard() {
               </div>
 
               <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-                0
+                {loadingStats
+                  ? "..."
+                  : pendingVendorApplications}
               </span>
             </div>
 
@@ -277,7 +332,9 @@ function Dashboard() {
               </div>
 
               <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                0
+                {loadingStats
+                  ? "..."
+                  : pendingVerifications}
               </span>
             </div>
 
