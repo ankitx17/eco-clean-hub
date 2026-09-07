@@ -13,6 +13,8 @@ import Vendors from "../pages/Vendors"
 import Facilities from "../pages/Facilities"
 import Verifications from "../pages/Verifications"
 import Credits from "../pages/Credits"
+import Rewards from "../pages/Rewards"
+import Activities from "../pages/Activities"
 import VideoReview from "../pages/VideoReview"
 import GreenFundRequests from "../pages/GreenFundRequests"
 import CommunityEventsAdmin from "../pages/CommunityEventsAdmin"
@@ -139,11 +141,29 @@ function AdminRoutes() {
         />
 
         {/* =================================================
+            Rewards
+            ================================================= */}
+
+        <Route
+          path="rewards"
+          element={<Rewards />}
+        />
+
+        {/* =================================================
+            Activities
+            ================================================= */}
+
+        <Route
+          path="activities"
+          element={<Activities />}
+        />
+
+        {/* =================================================
             Green Fund Requests
             ================================================= */}
 
         <Route
-          path="green-fund"
+          path="fund-requests"
           element={<GreenFundRequests />}
         />
 
@@ -165,6 +185,10 @@ function AdminRoutes() {
           element={<CommunityEventsAdmin />}
         />
 
+        {/* =================================================
+            FALLBACK
+            ================================================= */}
+
         <Route
           path="*"
           element={
@@ -181,4 +205,3 @@ function AdminRoutes() {
 }
 
 export default AdminRoutes
-

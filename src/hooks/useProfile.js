@@ -6,7 +6,8 @@ import {
   updateProfile,
 } from "firebase/auth"
 
-import { auth } from "../services/firebase"
+import { auth, db } from "../services/firebase"
+import { doc, getDoc } from "firebase/firestore"
 import useAuth from "./useAuth"
 
 const PROFILE_KEY = "eco_clean_hub_profile"
@@ -177,8 +178,27 @@ function useProfile() {
    * 2. stored weightKg
    * 3. estimated weight from AI category
    */
-  const loadImpact = () => {
+  const loadImpact = async () => {
     if (!user) return
+
+    let firestoreCredits = 0
+
+    try {
+      const userSnapshot = await getDoc(
+        doc(db, "users", user.uid)
+      )
+
+      if (userSnapshot.exists()) {
+        firestoreCredits = Number(
+          userSnapshot.data()?.totalCredits || 0
+        )
+      }
+    } catch (creditError) {
+      console.error(
+        "Unable to load Eco-Credits:",
+        creditError
+      )
+    }
 
     const saved = localStorage.getItem(
       `${ACTIVITY_KEY}_${user.uid}`
@@ -275,7 +295,7 @@ function useProfile() {
         co2Kg * TREES_PER_KG_CO2
 
       setStats({
-        credits: sum(parsed, "credits"),
+        credits: firestoreCredits,
         scanned: parsed.length,
         verified: verifiedActivities.length,
 
@@ -351,7 +371,7 @@ function useProfile() {
           } else if (height > maxSize) {
             width =
               (width * maxSize) / height
-            height = maxSize
+              height = maxSize
           }
 
           const canvas =

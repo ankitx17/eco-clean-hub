@@ -1,5 +1,6 @@
 import { useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { createFundingRequest } from "../services/fundingService"
 import {
   ArrowLeft,
   ArrowRight,
@@ -686,149 +687,140 @@ function FundingRequest() {
     }
   }
 
-  const submitRequest = () => {
-    if (!validateStep(4)) {
-      return
-    }
-
-    if (!form.declarationAccepted) {
-      setError(
-        "You must accept the declaration before submitting."
-      )
-      return
-    }
-
-    if (!signature) {
-      setError("Digital signature is required.")
-      setStep(2)
-      return
-    }
-
-    if (!files.thumbImpression) {
-      setError("Thumb impression is required.")
-      setStep(2)
-      return
-    }
-
-    const requestId = createRequestId()
-
-    const request = {
-      requestId,
-      status: "Pending",
-      createdAt: new Date().toISOString(),
-      applicant: {
-        fullName: form.fullName,
-        applicantType: form.applicantType,
-        email: form.email,
-        mobile: form.mobile,
-        alternateMobile1:
-          form.alternateMobile1,
-        alternateMobile2:
-          form.alternateMobile2,
-        alternateEmail:
-          form.alternateEmail,
-        fullAddress: form.fullAddress,
-        city: form.city,
-        state: form.state,
-        organizationName:
-          form.organizationName,
-        organizationRegistration:
-          form.organizationRegistration,
-      },
-      verification: {
-        idType: form.idType,
-        idNumber: form.idNumber,
-        thumbSide,
-        signature,
-        files: {
-          profilePhoto:
-            files.profilePhoto?.name || "",
-          identityCard:
-            files.identityCard?.name || "",
-          applicantPhoto:
-            files.applicantPhoto?.name || "",
-          organizationProof:
-            files.organizationProof?.name || "",
-          previousWorkProof:
-            files.previousWorkProof?.name || "",
-          thumbImpression:
-            files.thumbImpression?.name || "",
-        },
-      },
-      project: {
-        projectType: form.projectType,
-        projectTitle: form.projectTitle,
-        amountRequested:
-          Number(form.amountRequested),
-        expectedBeneficiaries:
-          form.expectedBeneficiaries,
-        exactLocation:
-          form.exactLocation,
-        startDate: form.startDate,
-        completionDate:
-          form.completionDate,
-        detailedReason:
-          form.detailedReason,
-        fundUsage:
-          form.fundUsage,
-      },
-      previousWork: {
-        details: form.previousWorkDetails,
-        fundingReceived:
-          form.previousFundingReceived,
-        results: form.previousResults,
-        socialLinks: form.socialLinks,
-        proofFiles:
-          files.previousWorkPhotos.map(
-            (file) => file.name
-          ),
-      },
-      budget: form.budgetItems,
-      video: {
-        driveLink:
-          form.videoDriveLink,
-        uploadedFile:
-          files.projectVideo?.name || "",
-      },
-      declaration: {
-        accepted:
-          form.declarationAccepted,
-        remainingAmount:
-          form.remainingAmountDeclaration,
-        finalImpactPlan:
-          form.finalImpactPlan,
-      },
-    }
-
-    try {
-      const existing = JSON.parse(
-        localStorage.getItem(LOCAL_KEY) || "[]"
-      )
-
-      localStorage.setItem(
-        LOCAL_KEY,
-        JSON.stringify([
-          ...existing,
-          request,
-        ])
-      )
-
-      localStorage.removeItem(
-        `${DRAFT_KEY}_${getCurrentUserKey()}`
-      )
-
-      setSuccess(request)
-      setError("")
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      })
-    } catch {
-      setError(
-        "Unable to submit the request on this device."
-      )
-    }
+ const submitRequest = async () => {
+  if (!validateStep(4)) {
+    return
   }
+
+  if (!form.declarationAccepted) {
+    setError(
+      "You must accept the declaration before submitting."
+    )
+    return
+  }
+
+  if (!signature) {
+    setError("Digital signature is required.")
+    setStep(2)
+    return
+  }
+
+  if (!files.thumbImpression) {
+    setError("Thumb impression is required.")
+    setStep(2)
+    return
+  }
+
+  const requestId = createRequestId()
+
+  const request = {
+    requestId,
+
+    applicant: {
+      fullName: form.fullName,
+      applicantType: form.applicantType,
+      email: form.email,
+      mobile: form.mobile,
+      alternateMobile1: form.alternateMobile1,
+      alternateMobile2: form.alternateMobile2,
+      alternateEmail: form.alternateEmail,
+      fullAddress: form.fullAddress,
+      city: form.city,
+      state: form.state,
+      organizationName: form.organizationName,
+      organizationRegistration:
+        form.organizationRegistration,
+    },
+
+    verification: {
+      idType: form.idType,
+      idNumber: form.idNumber,
+      thumbSide,
+      signature,
+      files: {
+        profilePhoto:
+          files.profilePhoto?.name || "",
+        identityCard:
+          files.identityCard?.name || "",
+        applicantPhoto:
+          files.applicantPhoto?.name || "",
+        organizationProof:
+          files.organizationProof?.name || "",
+        previousWorkProof:
+          files.previousWorkProof?.name || "",
+        thumbImpression:
+          files.thumbImpression?.name || "",
+      },
+    },
+
+    project: {
+      projectType: form.projectType,
+      projectTitle: form.projectTitle,
+      amountRequested: Number(form.amountRequested),
+      expectedBeneficiaries:
+        form.expectedBeneficiaries,
+      exactLocation: form.exactLocation,
+      startDate: form.startDate,
+      completionDate: form.completionDate,
+      detailedReason: form.detailedReason,
+      fundUsage: form.fundUsage,
+    },
+
+    previousWork: {
+      details: form.previousWorkDetails,
+      fundingReceived:
+        form.previousFundingReceived,
+      results: form.previousResults,
+      socialLinks: form.socialLinks,
+      proofFiles:
+        files.previousWorkPhotos.map(
+          (file) => file.name
+        ),
+    },
+
+    budget: form.budgetItems,
+
+    video: {
+      driveLink: form.videoDriveLink,
+      uploadedFile:
+        files.projectVideo?.name || "",
+    },
+
+    declaration: {
+      accepted: form.declarationAccepted,
+      remainingAmount:
+        form.remainingAmountDeclaration,
+      finalImpactPlan:
+        form.finalImpactPlan,
+    },
+  }
+
+  try {
+    await createFundingRequest(request)
+
+    localStorage.removeItem(
+      `${DRAFT_KEY}_${getCurrentUserKey()}`
+    )
+
+    setSuccess(request)
+    setError("")
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    })
+  } catch (submitError) {
+    console.error(
+      "Funding request submission failed:",
+      submitError
+    )
+
+    setError(
+      submitError?.message ||
+        "Unable to submit the funding request. Please try again."
+    )
+  }
+}
 
   if (success) {
     return (

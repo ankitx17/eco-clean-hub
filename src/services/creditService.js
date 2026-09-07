@@ -1,3 +1,7 @@
+import { doc, runTransaction } from "firebase/firestore"
+
+import { db } from "./firebase"
+
 const CREDIT_KEY = (userId) =>
   `eco_clean_hub_credits_${userId}`
 
@@ -478,6 +482,145 @@ export function awardCleanupCredits({
     metadata: {
       verificationScore,
     },
+  })
+}
+
+
+/*
+ * Award the cleanup reward only after admin approval.
+ *
+ * This is Firestore-backed so the credit is written to the
+ * actual user's account and is not limited to the admin browser's
+ * localStorage. The operation is transaction-safe and can only
+ * award a particular cleanup submission once.
+ */
+export async function awardApprovedCleanupCredits({
+  userId,
+  submissionId,
+  verificationScore,
+}) {
+  if (!userId || !submissionId) {
+    return {
+      awarded: false,
+      credits: 0,
+      balance: 0,
+    }
+  }
+
+  const submissionReference = doc(
+    db,
+    "cleanupSubmissions",
+    submissionId,
+  )
+
+  const userReference = doc(
+    db,
+    "users",
+    userId,
+  )
+
+  const transactionReference = doc(
+    db,
+    "creditTransactions",
+    `cleanup_${submissionId}`,
+  )
+
+  return runTransaction(db, async (transaction) => {
+    const submissionSnapshot = await transaction.get(
+      submissionReference,
+    )
+
+    if (!submissionSnapshot.exists()) {
+      throw new Error("Cleanup submission not found.")
+    }
+
+    const submission = submissionSnapshot.data() || {}
+
+    if (submission.creditAwarded === true) {
+      const userSnapshot = await transaction.get(
+        userReference,
+      )
+
+      return {
+        awarded: false,
+        credits: 0,
+        balance: Number(
+          userSnapshot.exists()
+            ? userSnapshot.data()?.totalCredits || 0
+            : 0,
+        ),
+      }
+    }
+
+    const existingTransactionSnapshot = await transaction.get(
+      transactionReference,
+    )
+
+    if (existingTransactionSnapshot.exists()) {
+      const userSnapshot = await transaction.get(
+        userReference,
+      )
+
+      return {
+        awarded: false,
+        credits: 0,
+        balance: Number(
+          userSnapshot.exists()
+            ? userSnapshot.data()?.totalCredits || 0
+            : 0,
+        ),
+      }
+    }
+
+    const userSnapshot = await transaction.get(
+      userReference,
+    )
+
+    if (!userSnapshot.exists()) {
+      throw new Error("User account not found.")
+    }
+
+    const currentBalance = Number(
+      userSnapshot.data()?.totalCredits || 0,
+    )
+
+    const newBalance =
+      currentBalance + CLEANUP_REWARD
+
+    const now = new Date()
+
+    transaction.update(userReference, {
+      totalCredits: newBalance,
+    })
+
+    transaction.set(transactionReference, {
+      userId,
+      activityId: submissionId,
+      submissionId,
+      amount: CLEANUP_REWARD,
+      creditsEarned: CLEANUP_REWARD,
+      reason: "Cleanup mission approved",
+      type: "cleanup",
+      createdAt: now,
+      verificationScore:
+        Number(verificationScore) ||
+        Number(submission.verificationScore) ||
+        0,
+    })
+
+    transaction.update(submissionReference, {
+      status: "approved",
+      verifiedAt: now,
+      creditAwarded: true,
+      creditAmount: CLEANUP_REWARD,
+      creditAwardedAt: now,
+    })
+
+    return {
+      awarded: true,
+      credits: CLEANUP_REWARD,
+      balance: newBalance,
+    }
   })
 }
 
