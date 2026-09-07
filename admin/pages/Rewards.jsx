@@ -118,27 +118,20 @@ function Rewards() {
           </p>
 
         </div>
-
       </section>
-
       {/* =====================================================
           REDEMPTIONS
           ===================================================== */}
-
       <section className="rounded-3xl border border-[#dce9e1] bg-white shadow-sm">
-
         <div className="border-b border-[#edf2ee] p-6">
           <h2 className="text-lg font-black text-[#14231a]">
             Redemption Requests
           </h2>
-
           <p className="mt-1 text-sm text-slate-500">
             Review and process user reward redemption requests.
           </p>
         </div>
-
         <div className="flex min-h-[240px] flex-col items-center justify-center px-6 text-center">
-
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-400">
             <Package size={26} />
           </div>
@@ -150,13 +143,8 @@ function Rewards() {
           <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
             Pending reward redemption requests will appear here.
           </p>
-
         </div>
-
       </section>
-
     </div>
-  )
-}
-
+  )}
 export default Rewards
