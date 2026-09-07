@@ -1,5 +1,5 @@
 const API_URL =
-  import.meta.env.VITE_AI_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
   "http://127.0.0.1:3001"
 
 const REQUEST_TIMEOUT = 90000
@@ -24,7 +24,6 @@ const optimizeImageForVerification = (
             "Invalid image file.",
           ),
         )
-
         return
       }
 
@@ -56,7 +55,6 @@ const optimizeImageForVerification = (
               "Unable to read image dimensions.",
             ),
           )
-
           return
         }
 
@@ -113,7 +111,6 @@ const optimizeImageForVerification = (
               "Unable to process image.",
             ),
           )
-
           return
         }
 
@@ -139,7 +136,6 @@ const optimizeImageForVerification = (
                   "Unable to optimize image.",
                 ),
               )
-
               return
             }
 
@@ -197,11 +193,9 @@ const optimizeAllPhotos =
       optimizeImageForVerification(
         beforePhoto,
       ),
-
       optimizeImageForVerification(
         afterPhoto,
       ),
-
       optimizeImageForVerification(
         actionPhoto,
       ),

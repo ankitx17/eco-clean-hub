@@ -1,6 +1,5 @@
 const API_URL =
-  import.meta.env.VITE_AI_API_URL ||
-  "http://127.0.0.1:3001/api/classify-waste"
+  `${import.meta.env.VITE_API_BASE_URL}/api/classify-waste`
 
 const MAX_IMAGE_DIMENSION = 1280
 const JPEG_QUALITY = 0.82
