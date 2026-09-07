@@ -3,7 +3,6 @@ import {
   WalletCards,
   ScanLine,
   MapPin,
-  ClipboardCheck,
   Menu,
   X,
   Gift,
@@ -109,13 +108,13 @@ function DashboardHeader() {
       icon: MapPin,
     },
     {
-      label: "Verification",
-      path: "/verification",
-      icon: ClipboardCheck,
+      label: "Mission",
+      path: "/missions",
+      icon: Leaf,
     },
     {
       label: "Rewards",
-      path: "/rewards",
+      path: "/redeem",
       icon: WalletCards,
     },
     {

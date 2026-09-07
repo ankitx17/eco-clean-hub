@@ -20,8 +20,17 @@ import {
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
+import useAuth from "../hooks/useAuth"
+
+import {
+  getCreditBalance,
+  getCreditTransactions,
+  redeemReward,
+} from "../services/creditService"
+
 function RedeemRewards() {
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const [credits, setCredits] = useState(0)
   const [history, setHistory] = useState([])
@@ -70,13 +79,17 @@ function RedeemRewards() {
       window.removeEventListener("focus", loadRewardsData)
       window.removeEventListener("storage", loadRewardsData)
     }
-  }, [])
+}, [user?.uid])
 
   const loadRewardsData = () => {
-    const savedCredits = localStorage.getItem("ecoCredits")
-    const savedHistory =
-      localStorage.getItem("purchaseHistory") ||
-      localStorage.getItem("redemptionHistory")
+  const savedCredits = user?.uid
+    ? getCreditBalance(user.uid)
+    : 0
+
+    const savedHistory = user?.uid
+  ? getCreditTransactions(user.uid)
+  : []
+
     const savedAddresses = localStorage.getItem("deliveryAddresses")
 
     setCredits(
@@ -410,11 +423,28 @@ function RedeemRewards() {
   }
 
   const finishOrder = (
-    reward,
-    requiredCredits,
-    cashPrice
-  ) => {
-    const newCredits = credits - requiredCredits
+  reward,
+  requiredCredits,
+  cashPrice
+) => {
+  if (cashPrice === 0 && !user?.uid) {
+    alert("Please log in to redeem Eco-Credits.")
+    return
+  }
+
+  if (cashPrice === 0) {
+    const result = redeemReward({
+      userId: user.uid,
+      rewardId: reward.id,
+    })
+
+    if (!result?.success) {
+      alert(result?.message || "Unable to redeem this reward.")
+      return
+    }
+  }
+
+  const newCredits = credits - requiredCredits
 
     const rewardCode = generateCode(reward.type)
     const trackingCode = generateTrackingCode()
@@ -457,24 +487,20 @@ function RedeemRewards() {
 
     const nextHistory = [orderData, ...history]
 
-    localStorage.setItem(
-      "ecoCredits",
-      newCredits.toString()
-    )
+  
 
-    // Keep the old key working and also persist the new purchase key.
-    localStorage.setItem(
-      "redemptionHistory",
-      JSON.stringify(nextHistory)
-    )
+    // Keep the old key working and also persist the new purchase key
 
-    localStorage.setItem(
-      "purchaseHistory",
-      JSON.stringify(nextHistory)
-    )
-
-    setCredits(newCredits)
-    setHistory(nextHistory)
+    setCredits(
+  user?.uid
+    ? getCreditBalance(user.uid)
+    : 0
+)
+    setHistory(
+  user?.uid
+    ? getCreditTransactions(user.uid)
+    : []
+)
     setCheckoutOpen(false)
     setSelectedReward(null)
     setCheckoutStep(4)
@@ -689,13 +715,15 @@ function RedeemRewards() {
             </div>
 
             <div>
-              <h2 className="text-2xl font-black tracking-tight">
-                Purchase & Redemption History
-              </h2>
 
-              <p className="text-sm text-slate-500">
-                Your recent rewards, payment details, and order codes.
-              </p>
+              <h2 className="text-2xl font-black tracking-tight">
+  Eco-Credit History
+</h2>
+
+<p className="text-sm text-slate-500">
+  Your recent Eco-Credit earnings and redemptions.
+</p>
+
             </div>
           </div>
 
@@ -706,89 +734,100 @@ function RedeemRewards() {
               </div>
 
               <p className="mt-4 font-bold text-slate-600">
-                No rewards redeemed yet
-              </p>
+  No Eco-Credit activity yet
+</p>
 
-              <p className="mt-1 text-sm text-slate-400">
-                Your orders and digital vouchers will appear here.
-              </p>
+<p className="mt-1 text-sm text-slate-400">
+  Your earned and redeemed Eco-Credits will appear here.
+</p>
+
+
             </div>
           ) : (
             <div className="space-y-3">
-              {history.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-[22px] border border-[#dcebe2] bg-white p-4 shadow-sm transition hover:shadow-md sm:p-5"
-                >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#edf8f1] text-[#176b45]">
-                        <CheckCircle2 size={21} />
-                      </div>
 
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-black">
-                            {item.title}
-                          </p>
+              {history.map((item) => {
+  const amount = Number(item.amount || 0)
+  const isCredit = amount > 0
 
-                          <span className="rounded-full bg-[#edf8f1] px-2.5 py-1 text-[10px] font-bold text-[#176b45]">
-                            {item.status || "Redeemed"}
-                          </span>
-                        </div>
+  return (
+    <div
+      key={item.id}
+      className="rounded-[22px] border border-[#dcebe2] bg-white p-4 shadow-sm transition hover:shadow-md sm:p-5"
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <div
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+              isCredit
+                ? "bg-[#edf8f1] text-[#176b45]"
+                : "bg-red-50 text-red-500"
+            }`}
+          >
+            {isCredit ? (
+              <CheckCircle2 size={21} />
+            ) : (
+              <WalletCards size={21} />
+            )}
+          </div>
 
-                        <p className="mt-1 text-sm text-slate-500">
-                          {item.subtitle}
-                        </p>
+          <div>
+            <p className="font-black text-slate-900">
+              {item.title || "Eco-Credit Activity"}
+            </p>
 
-                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
-                          <span>
-                            {item.date}
-                          </span>
-                          {item.orderId && (
-                            <span>
-                              Order: {item.orderId}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <span
+                className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                  isCredit
+                    ? "bg-[#edf8f1] text-[#176b45]"
+                    : "bg-red-50 text-red-500"
+                }`}
+              >
+                {isCredit ? "Earned" : "Redeemed"}
+              </span>
 
-                    <div className="rounded-xl bg-[#f7fbf8] px-4 py-3 lg:min-w-[250px]">
-                      <div className="flex items-center justify-between gap-5">
-                        <span className="text-xs text-slate-500">
-                          Credits
-                        </span>
-                        <span className="font-bold text-red-500">
-                          -{Number(item.credits || 0).toLocaleString("en-IN")}
-                        </span>
-                      </div>
+              {item.type && (
+                <span className="text-xs font-medium text-slate-400">
+                  {item.type}
+                </span>
+              )}
+            </div>
 
-                      {Number(item.cash || 0) > 0 && (
-                        <div className="mt-1 flex items-center justify-between gap-5">
-                          <span className="text-xs text-slate-500">
-                            Cash
-                          </span>
-                          <span className="font-bold text-[#176b45]">
-                            {formatCash(item.cash)}
-                          </span>
-                        </div>
-                      )}
+            {item.createdAt && (
+              <p className="mt-2 text-xs text-slate-400">
+                {new Date(item.createdAt).toLocaleString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            )}
+          </div>
+        </div>
 
-                      {item.paymentMethod && (
-                        <div className="mt-1 flex items-center justify-between gap-5">
-                          <span className="text-xs text-slate-500">
-                            Payment
-                          </span>
-                          <span className="text-xs font-bold text-slate-700">
-                            {item.paymentMethod}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+        <div className="shrink-0 text-right">
+          <p
+            className={`text-lg font-black ${
+              isCredit ? "text-[#176b45]" : "text-red-500"
+            }`}
+          >
+            {isCredit ? "+" : ""}
+            {amount.toLocaleString("en-IN")}
+          </p>
+
+          <p className="text-[11px] font-semibold text-slate-400">
+            Eco-Credits
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+})}
+
+                                                                  
             </div>
           )}
         </section>

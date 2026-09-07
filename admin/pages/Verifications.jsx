@@ -28,6 +28,8 @@ import {
   storage,
 } from "../../src/services/firebase"
 
+import { awardCleanupCredits } from "../../src/services/creditService"
+
 function Verifications() {
   const [submissions, setSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -215,68 +217,101 @@ function Verifications() {
       ).toLowerCase() === "rejected"
   ).length
 
-  // =====================================================
-  // UPDATE STATUS
-  // =====================================================
-
   const updateVerificationStatus = async (
-    submissionId,
-    newStatus
-  ) => {
-    try {
-      setUpdatingId(submissionId)
+  submissionId,
+  newStatus
+) => {
+  try {
+    setUpdatingId(submissionId)
 
-      const submissionReference = doc(
-        db,
-        "cleanupSubmissions",
-        submissionId
-      )
+    // Find the submission
+    const submission = submissions.find(
+      (item) => item.id === submissionId
+    )
 
-      await updateDoc(
-        submissionReference,
-        {
-          status: newStatus,
-          verifiedAt: new Date(),
-        }
-      )
-
-      setSubmissions(
-        (currentSubmissions) =>
-          currentSubmissions.map(
-            (submission) =>
-              submission.id === submissionId
-                ? {
-                    ...submission,
-                    status: newStatus,
-                    verifiedAt: new Date(),
-                  }
-                : submission
-          )
-      )
-
-      setSelectedSubmission(
-        (current) =>
-          current?.id === submissionId
-            ? {
-                ...current,
-                status: newStatus,
-                verifiedAt: new Date(),
-              }
-            : current
-      )
-    } catch (err) {
-      console.error(
-        "Failed to update verification:",
-        err
-      )
-
-      alert(
-        "Verification status update nahi ho saka. Firestore rules check karo."
-      )
-    } finally {
-      setUpdatingId(null)
+    if (!submission) {
+      throw new Error("Submission not found.")
     }
+
+    const submissionReference = doc(
+      db,
+      "cleanupSubmissions",
+      submissionId
+    )
+
+    // Update Firestore status
+    await updateDoc(
+      submissionReference,
+      {
+        status: newStatus,
+        verifiedAt: new Date(),
+      }
+    )
+
+    // Award Eco-Credits ONLY after approval
+    if (newStatus === "approved") {
+      const result = awardCleanupCredits({
+        userId: submission.userId,
+        submissionId: submission.id,
+        verificationScore:
+          submission.verificationScore,
+      })
+
+      console.log(
+        "Cleanup credit result:",
+        result
+      )
+
+      if (result.awarded) {
+        alert(
+          `Cleanup approved! ${result.credits} Eco-Credits added.`
+        )
+      } else {
+        console.log(
+          "Credits were already awarded for this submission."
+        )
+      }
+    }
+
+    // Update local submissions state
+    setSubmissions(
+      (currentSubmissions) =>
+        currentSubmissions.map(
+          (item) =>
+            item.id === submissionId
+              ? {
+                  ...item,
+                  status: newStatus,
+                  verifiedAt: new Date(),
+                }
+              : item
+        )
+    )
+
+    // Update selected submission
+    setSelectedSubmission(
+      (current) =>
+        current?.id === submissionId
+          ? {
+              ...current,
+              status: newStatus,
+              verifiedAt: new Date(),
+            }
+          : current
+    )
+  } catch (err) {
+    console.error(
+      "Failed to update verification:",
+      err
+    )
+
+    alert(
+      "Verification status update nahi ho saka."
+    )
+  } finally {
+    setUpdatingId(null)
   }
+}
 
   // =====================================================
   // DATE FORMAT

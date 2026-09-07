@@ -580,10 +580,7 @@ async function getApprovedVendorFacilities(
         id:
           `vendor-${documentSnapshot.id}`,
 
-        name:
-          data.businessName ||
-          data.name ||
-          "Approved Waste Recovery Facility",
+       
 
         businessName:
           data.businessName ||
