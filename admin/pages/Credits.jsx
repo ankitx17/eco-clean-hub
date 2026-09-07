@@ -2,9 +2,9 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Coins,
+  Crown,
   RefreshCw,
   Search,
-  Users,
 } from "lucide-react"
 
 import {
@@ -15,7 +15,9 @@ import {
 
 import {
   collection,
+  doc,
   getDocs,
+  writeBatch,
 } from "firebase/firestore"
 
 import { db } from "../../src/services/firebase"
@@ -27,8 +29,242 @@ function Credits() {
 
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
-
   const [error, setError] = useState("")
+
+
+  // =====================================================
+  // GET TRANSACTION DATE
+  // =====================================================
+
+  const getTransactionDate = (transaction) => {
+    const value =
+      transaction.createdAt ||
+      transaction.timestamp
+
+    if (!value) {
+      return null
+    }
+
+    try {
+      if (
+        value &&
+        typeof value.toDate === "function"
+      ) {
+        return value.toDate()
+      }
+
+      const date = new Date(value)
+
+      if (
+        Number.isNaN(
+          date.getTime()
+        )
+      ) {
+        return null
+      }
+
+      return date
+    } catch {
+      return null
+    }
+  }
+
+
+  // =====================================================
+  // SYNC USERS → LEADERBOARD
+  // =====================================================
+
+  const syncLeaderboard = async (
+    userData,
+    transactionData
+  ) => {
+    if (!userData.length) {
+      return
+    }
+
+    const now = new Date()
+
+    // Start of current week
+    const startOfWeek = new Date(now)
+    const day = startOfWeek.getDay()
+
+    startOfWeek.setDate(
+      startOfWeek.getDate() -
+        (day === 0 ? 6 : day - 1)
+    )
+
+    startOfWeek.setHours(
+      0,
+      0,
+      0,
+      0
+    )
+
+    // Start of current month
+    const startOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+      0,
+      0,
+      0,
+      0
+    )
+
+
+    // -----------------------------------------------------
+    // Calculate credits for each user
+    // -----------------------------------------------------
+
+    const leaderboardUsers =
+      userData.map((user) => {
+        const userId =
+          user.uid || user.id
+
+        const totalCredits =
+          Number(
+            user.totalCredits || 0
+          )
+
+
+        let weeklyCredits = 0
+        let monthlyCredits = 0
+        let verified = 0
+
+
+        transactionData.forEach(
+          (transaction) => {
+            if (
+              transaction.userId !==
+              userId
+            ) {
+              return
+            }
+
+
+            const amount =
+              Number(
+                transaction.amount ??
+                  transaction.creditsEarned ??
+                  0
+              )
+
+
+            // Only earned credits
+            // count for weekly/monthly
+            // leaderboard.
+            if (amount <= 0) {
+              return
+            }
+
+
+            const transactionDate =
+              getTransactionDate(
+                transaction
+              )
+
+
+            if (!transactionDate) {
+              return
+            }
+
+
+            if (
+              transactionDate >=
+              startOfWeek
+            ) {
+              weeklyCredits += amount
+            }
+
+
+            if (
+              transactionDate >=
+              startOfMonth
+            ) {
+              monthlyCredits += amount
+            }
+
+
+            verified += 1
+          }
+        )
+
+
+        return {
+          uid: userId,
+
+          name:
+            user.name ||
+            user.displayName ||
+            user.userName ||
+            user.email ||
+            "Eco User",
+
+          credits:
+            totalCredits,
+
+          weeklyCredits,
+
+          monthlyCredits,
+
+          // Keep these fields because
+          // Leaderboard.jsx displays them.
+          verified,
+
+          wasteKg:
+            Number(
+              user.wasteKg || 0
+            ),
+        }
+      })
+
+
+    // -----------------------------------------------------
+    // Write leaderboard documents
+    // -----------------------------------------------------
+
+    // Firestore batch limit is 500 writes.
+    // Use chunks so this also works with
+    // a larger number of users.
+
+    for (
+      let i = 0;
+      i < leaderboardUsers.length;
+      i += 450
+    ) {
+      const batch = writeBatch(db)
+
+      const chunk =
+        leaderboardUsers.slice(
+          i,
+          i + 450
+        )
+
+
+      chunk.forEach(
+        (leaderboardUser) => {
+          const leaderboardRef =
+            doc(
+              db,
+              "leaderboard",
+              leaderboardUser.uid
+            )
+
+
+          batch.set(
+            leaderboardRef,
+            leaderboardUser,
+            {
+              merge: true,
+            }
+          )
+        }
+      )
+
+
+      await batch.commit()
+    }
+  }
 
 
   // =====================================================
@@ -40,26 +276,32 @@ function Credits() {
       setLoading(true)
       setError("")
 
-      // -----------------------------------------------
-      // USERS
-      // -----------------------------------------------
 
-      const usersSnapshot = await getDocs(
-        collection(db, "users")
-      )
+      // -------------------------------------------------
+      // USERS
+      // -------------------------------------------------
+
+      const usersSnapshot =
+        await getDocs(
+          collection(
+            db,
+            "users"
+          )
+        )
+
 
       const userData =
-        usersSnapshot.docs.map((document) => ({
-          id: document.id,
-          ...document.data(),
-        }))
+        usersSnapshot.docs.map(
+          (document) => ({
+            id: document.id,
+            ...document.data(),
+          })
+        )
 
-      setUsers(userData)
 
-
-      // -----------------------------------------------
+      // -------------------------------------------------
       // CREDIT TRANSACTIONS
-      // -----------------------------------------------
+      // -------------------------------------------------
 
       const transactionsSnapshot =
         await getDocs(
@@ -69,6 +311,7 @@ function Credits() {
           )
         )
 
+
       const transactionData =
         transactionsSnapshot.docs.map(
           (document) => ({
@@ -77,7 +320,26 @@ function Credits() {
           })
         )
 
-      setTransactions(transactionData)
+
+      // -------------------------------------------------
+      // SYNC LEADERBOARD
+      // -------------------------------------------------
+
+      await syncLeaderboard(
+        userData,
+        transactionData
+      )
+
+
+      // -------------------------------------------------
+      // SET ADMIN DATA
+      // -------------------------------------------------
+
+      setUsers(userData)
+      setTransactions(
+        transactionData
+      )
+
     } catch (error) {
       console.error(
         "Failed to load credit data:",
@@ -93,6 +355,10 @@ function Credits() {
   }
 
 
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
+
   useEffect(() => {
     loadCreditData()
   }, [])
@@ -102,16 +368,17 @@ function Credits() {
   // TOTAL USER BALANCE
   // =====================================================
 
-  const totalUserCredits = useMemo(() => {
-    return users.reduce(
-      (total, user) =>
-        total +
-        Number(
-          user.totalCredits || 0
-        ),
-      0
-    )
-  }, [users])
+  const totalUserCredits =
+    useMemo(() => {
+      return users.reduce(
+        (total, user) =>
+          total +
+          Number(
+            user.totalCredits || 0
+          ),
+        0
+      )
+    }, [users])
 
 
   // =====================================================
@@ -173,36 +440,92 @@ function Credits() {
 
 
   // =====================================================
-  // FILTER USERS
+  // TOP USER
   // =====================================================
 
-  const filteredUsers = useMemo(() => {
-    const query =
-      search.trim().toLowerCase()
+  const topUser =
+    useMemo(() => {
+      if (!users.length) {
+        return null
+      }
 
-    if (!query) {
-      return users
-    }
+      return [...users].sort(
+        (a, b) =>
+          Number(
+            b.totalCredits || 0
+          ) -
+          Number(
+            a.totalCredits || 0
+          )
+      )[0]
+    }, [users])
 
-    return users.filter((user) => {
-      const name =
-        String(
-          user.name ||
-            user.displayName ||
-            ""
-        ).toLowerCase()
 
-      const email =
-        String(
-          user.email || ""
-        ).toLowerCase()
+  const topUserCredits =
+    Number(
+      topUser?.totalCredits || 0
+    )
 
-      return (
-        name.includes(query) ||
-        email.includes(query)
+
+  const topUserName =
+    topUser?.name ||
+    topUser?.displayName ||
+    topUser?.email ||
+    "No user"
+
+
+  // =====================================================
+  // FILTER + SORT USERS
+  // =====================================================
+
+  const filteredUsers =
+    useMemo(() => {
+      const query =
+        search
+          .trim()
+          .toLowerCase()
+
+
+      const sortedUsers =
+        [...users].sort(
+          (a, b) =>
+            Number(
+              b.totalCredits || 0
+            ) -
+            Number(
+              a.totalCredits || 0
+            )
+        )
+
+
+      if (!query) {
+        return sortedUsers
+      }
+
+
+      return sortedUsers.filter(
+        (user) => {
+          const name =
+            String(
+              user.name ||
+                user.displayName ||
+                ""
+            ).toLowerCase()
+
+
+          const email =
+            String(
+              user.email || ""
+            ).toLowerCase()
+
+
+          return (
+            name.includes(query) ||
+            email.includes(query)
+          )
+        }
       )
-    })
-  }, [users, search])
+    }, [users, search])
 
 
   // =====================================================
@@ -216,16 +539,19 @@ function Credits() {
 
     try {
       if (
-        typeof value?.toDate ===
-        "function"
+        value &&
+        typeof value.toDate ===
+          "function"
       ) {
         return value
           .toDate()
           .toLocaleString()
       }
 
+
       const date =
         new Date(value)
+
 
       if (
         Number.isNaN(
@@ -235,11 +561,51 @@ function Credits() {
         return "—"
       }
 
+
       return date.toLocaleString()
+
     } catch {
       return "—"
     }
   }
+
+
+  // =====================================================
+  // GET USER NAME FOR TRANSACTION
+  // =====================================================
+
+  const getTransactionUserName =
+    (transaction) => {
+
+      if (
+        transaction.userName ||
+        transaction.email
+      ) {
+        return (
+          transaction.userName ||
+          transaction.email
+        )
+      }
+
+
+      const matchingUser =
+        users.find(
+          (user) =>
+            user.id ===
+              transaction.userId ||
+            user.uid ===
+              transaction.userId
+        )
+
+
+      return (
+        matchingUser?.name ||
+        matchingUser?.displayName ||
+        matchingUser?.email ||
+        transaction.userId ||
+        "Unknown"
+      )
+    }
 
 
   return (
@@ -271,9 +637,7 @@ function Credits() {
 
         <button
           type="button"
-          onClick={
-            loadCreditData
-          }
+          onClick={loadCreditData}
           disabled={loading}
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-[#176b45] hover:text-[#176b45] disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -336,9 +700,7 @@ function Credits() {
             </div>
 
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#e6f4ec] text-[#176b45]">
-
               <Coins size={22} />
-
             </div>
 
           </div>
@@ -420,34 +782,34 @@ function Credits() {
         </div>
 
 
-        {/* Users */}
+        {/* Top User */}
 
         <div className="rounded-2xl border border-[#dce9e1] bg-white p-5 shadow-sm">
 
           <div className="flex items-center justify-between">
 
-            <div>
+            <div className="min-w-0">
 
               <p className="text-sm font-medium text-slate-500">
-                Credit Users
+                Top Eco-Citizen
               </p>
 
-              <p className="mt-2 text-3xl font-black text-[#14231a]">
+              <p className="mt-2 truncate text-xl font-black text-[#14231a]">
                 {loading
                   ? "..."
-                  : users.length}
+                  : topUserName}
               </p>
 
-              <p className="mt-2 text-xs text-slate-400">
-                Registered citizen accounts
+              <p className="mt-2 text-xs font-semibold text-[#176b45]">
+                {loading
+                  ? "..."
+                  : `${topUserCredits.toLocaleString()} Eco-Credits`}
               </p>
 
             </div>
 
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-
-              <Users size={22} />
-
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+              <Crown size={22} />
             </div>
 
           </div>
@@ -479,7 +841,6 @@ function Credits() {
 
             </div>
 
-
             <div className="relative w-full lg:w-80">
 
               <Search
@@ -510,11 +871,15 @@ function Credits() {
 
         <div className="overflow-x-auto">
 
-          <table className="w-full min-w-[700px]">
+          <table className="w-full min-w-[800px]">
 
             <thead>
 
               <tr className="border-b border-[#edf2ee] bg-[#f8fbf9] text-left">
+
+                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Rank
+                </th>
 
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
                   User
@@ -548,7 +913,7 @@ function Credits() {
                 <tr>
 
                   <td
-                    colSpan="5"
+                    colSpan="6"
                     className="px-6 py-12 text-center"
                   >
 
@@ -572,7 +937,7 @@ function Credits() {
                 <tr>
 
                   <td
-                    colSpan="5"
+                    colSpan="6"
                     className="px-6 py-12 text-center"
                   >
 
@@ -596,19 +961,44 @@ function Credits() {
               ) : (
 
                 filteredUsers.map(
-                  (user) => {
+                  (user, index) => {
 
                     const balance =
                       Number(
                         user.totalCredits ||
-                          0
+                        0
                       )
+
 
                     return (
                       <tr
                         key={user.id}
                         className="border-b border-[#edf2ee] last:border-b-0"
                       >
+
+                        {/* Rank */}
+
+                        <td className="px-6 py-4">
+
+                          <span
+                            className={[
+                              "inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-black",
+                              index === 0
+                                ? "bg-amber-50 text-amber-600"
+                                : index === 1
+                                  ? "bg-slate-100 text-slate-600"
+                                  : index === 2
+                                    ? "bg-orange-50 text-orange-600"
+                                    : "bg-[#f1f6f3] text-[#176b45]",
+                            ].join(" ")}
+                          >
+                            {index + 1}
+                          </span>
+
+                        </td>
+
+
+                        {/* User */}
 
                         <td className="px-6 py-4">
 
@@ -621,6 +1011,8 @@ function Credits() {
                         </td>
 
 
+                        {/* Email */}
+
                         <td className="px-6 py-4">
 
                           <p className="text-sm text-slate-500">
@@ -631,15 +1023,20 @@ function Credits() {
                         </td>
 
 
+                        {/* Role */}
+
                         <td className="px-6 py-4">
 
                           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold capitalize text-slate-600">
                             {user.role ||
+                              user.userType ||
                               "citizen"}
                           </span>
 
                         </td>
 
+
+                        {/* Credits */}
 
                         <td className="px-6 py-4">
 
@@ -658,6 +1055,8 @@ function Credits() {
 
                         </td>
 
+
+                        {/* Status */}
 
                         <td className="px-6 py-4">
 
@@ -784,8 +1183,10 @@ function Credits() {
                           0
                       )
 
+
                     const isPositive =
                       amount > 0
+
 
                     return (
                       <tr
@@ -796,10 +1197,9 @@ function Credits() {
                         <td className="px-6 py-4">
 
                           <p className="text-sm font-bold text-slate-700">
-                            {transaction.userName ||
-                              transaction.email ||
-                              transaction.userId ||
-                              "Unknown"}
+                            {getTransactionUserName(
+                              transaction
+                            )}
                           </p>
 
                         </td>

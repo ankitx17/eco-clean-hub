@@ -1,160 +1,276 @@
-const LEADERBOARD_KEY =
-  "eco_clean_hub_leaderboard"
+import {
+  collection,
+  getDocs,
+  query,
+  orderBy,
+} from "firebase/firestore"
 
-const DEFAULT_CITIZENS = [
+import { db } from "../services/firebase"
+
+/* =====================================================
+   LEADERBOARD DATA
+   ===================================================== */
+
+/*
+  Public leaderboard collection:
+
+  leaderboard/{userId}
+
+  Expected fields:
+
   {
-    id: "demo-1",
-    name: "Eco Warrior",
-    credits: 980,
-    verified: 28,
-    wasteKg: 42.5,
-    community: "Delhi",
-  },
-  {
-    id: "demo-2",
-    name: "Green Hero",
-    credits: 850,
-    verified: 24,
-    wasteKg: 38.2,
-    community: "Faridabad",
-  },
-  {
-    id: "demo-3",
-    name: "Clean Earth",
-    credits: 720,
-    verified: 21,
-    wasteKg: 31.7,
-    community: "Gurugram",
-  },
-]
+    uid,
+    name,
+    credits,
+    weeklyCredits,
+    monthlyCredits,
+    wasteKg,
+    verified
+  }
 
-export function getLeaderboardEntries() {
-  try {
-    const saved =
-      localStorage.getItem(
-        LEADERBOARD_KEY,
-      )
+  IMPORTANT:
+  User-facing leaderboard ab users collection ya
+  creditTransactions collection ko directly read nahi karega.
 
-    if (!saved) {
-      return DEFAULT_CITIZENS
-    }
+  Isse Firestore permission problem nahi hogi.
+*/
 
-    const parsed = JSON.parse(saved)
 
-    return Array.isArray(parsed)
-      ? parsed
-      : DEFAULT_CITIZENS
-  } catch {
-    return DEFAULT_CITIZENS
+/* =====================================================
+   NORMALIZE LEADERBOARD USER
+   ===================================================== */
+
+function normalizeLeaderboardUser(
+  documentSnapshot
+) {
+  const data =
+    documentSnapshot.data() || {}
+
+  const credits =
+    Number(data.credits ?? 0)
+
+  const weeklyCredits =
+    Number(data.weeklyCredits ?? 0)
+
+  const monthlyCredits =
+    Number(data.monthlyCredits ?? 0)
+
+  const wasteKg =
+    Number(data.wasteKg ?? 0)
+
+  return {
+    uid:
+      data.uid ||
+      documentSnapshot.id,
+
+    name:
+      data.name ||
+      data.displayName ||
+      data.userName ||
+      "Eco User",
+
+    email:
+      data.email ||
+      "",
+
+    credits:
+      Number.isFinite(credits)
+        ? credits
+        : 0,
+
+    weeklyCredits:
+      Number.isFinite(weeklyCredits)
+        ? weeklyCredits
+        : 0,
+
+    monthlyCredits:
+      Number.isFinite(monthlyCredits)
+        ? monthlyCredits
+        : 0,
+
+    wasteKg:
+      Number.isFinite(wasteKg)
+        ? wasteKg
+        : 0,
+
+    verified:
+      data.verified === true,
   }
 }
 
-export function saveLeaderboardEntries(
-  entries,
+
+/* =====================================================
+   GET LEADERBOARD ENTRIES
+   ===================================================== */
+
+export async function getLeaderboardEntries(
+  period = "community"
 ) {
-  localStorage.setItem(
-    LEADERBOARD_KEY,
-    JSON.stringify(entries),
+  try {
+    const leaderboardRef =
+      collection(
+        db,
+        "leaderboard"
+      )
+
+    /*
+      orderBy is intentionally NOT used here.
+
+      Reason:
+      Existing leaderboard documents may not all have
+      the same fields. We fetch the public documents and
+      sort them locally.
+    */
+
+    const snapshot =
+      await getDocs(
+        query(
+          leaderboardRef
+        )
+      )
+
+    const users = []
+
+    snapshot.forEach(
+      (documentSnapshot) => {
+        users.push(
+          normalizeLeaderboardUser(
+            documentSnapshot
+          )
+        )
+      }
+    )
+
+    /*
+      Select the correct credit field
+      according to the selected tab.
+    */
+
+    const entries =
+      users.map(
+        (user) => {
+
+          let credits = 0
+
+          if (
+            period === "weekly"
+          ) {
+            credits =
+              user.weeklyCredits
+          } else if (
+            period === "monthly"
+          ) {
+            credits =
+              user.monthlyCredits
+          } else {
+            credits =
+              user.credits
+          }
+
+          return {
+            ...user,
+            credits,
+          }
+        }
+      )
+
+    return entries
+
+  } catch (error) {
+
+    console.error(
+      "Unable to load leaderboard data:",
+      error
+    )
+
+    throw error
+  }
+}
+
+
+/* =====================================================
+   BUILD LEADERBOARD
+   ===================================================== */
+
+export function buildLeaderboard({
+  entries = [],
+} = {}) {
+
+  /*
+    Make a new array so original Firebase data
+    is not mutated.
+  */
+
+  const sortedEntries =
+    [...entries].sort(
+      (a, b) => {
+
+        const aCredits =
+          Number(a.credits ?? 0)
+
+        const bCredits =
+          Number(b.credits ?? 0)
+
+        return (
+          bCredits -
+          aCredits
+        )
+      }
+    )
+
+  /*
+    Assign ranking.
+  */
+
+  return sortedEntries.map(
+    (entry, index) => ({
+      ...entry,
+
+      rank:
+        index + 1,
+    })
   )
 }
 
-export function updateLeaderboardUser({
-  userId,
-  name,
-  credits,
-  verified,
-  wasteKg,
-  community = "My Community",
-}) {
-  const entries =
-    getLeaderboardEntries()
 
-  const existingIndex =
-    entries.findIndex(
-      (entry) => entry.id === userId,
-    )
+/* =====================================================
+   FIND USER RANK
+   ===================================================== */
 
-  const updatedUser = {
-    id: userId,
-    name: name || "Citizen",
-    credits: Number(credits) || 0,
-    verified: Number(verified) || 0,
-    wasteKg: Number(wasteKg) || 0,
-    community,
+export function getUserLeaderboardEntry(
+  entries = [],
+  userId
+) {
+  if (!userId) {
+    return null
   }
 
-  if (existingIndex >= 0) {
-    entries[existingIndex] =
-      updatedUser
-  } else {
-    entries.push(updatedUser)
-  }
-
-  saveLeaderboardEntries(entries)
-
-  return entries
+  return (
+    entries.find(
+      (entry) =>
+        entry.uid === userId
+    ) || null
+  )
 }
 
-export function buildLeaderboard({
-  entries,
-  period = "weekly",
-}) {
-  const now = Date.now()
 
-  let filtered = [...entries]
+/* =====================================================
+   BACKWARD COMPATIBILITY
+   ===================================================== */
 
-  if (period === "weekly") {
-    filtered = filtered.filter(
-      (entry) => {
-        if (!entry.updatedAt) {
-          return true
-        }
+/*
+  These exports are kept so existing files that may
+  still import them do not break.
 
-        const difference =
-          now -
-          new Date(
-            entry.updatedAt,
-          ).getTime()
+  Actual leaderboard updates will be handled from the
+  Admin Eco-Credits flow.
+*/
 
-        return (
-          difference <=
-          7 * 24 * 60 * 60 * 1000
-        )
-      },
-    )
-  }
-
-  if (period === "monthly") {
-    filtered = filtered.filter(
-      (entry) => {
-        if (!entry.updatedAt) {
-          return true
-        }
-
-        const difference =
-          now -
-          new Date(
-            entry.updatedAt,
-          ).getTime()
-
-        return (
-          difference <=
-          30 * 24 * 60 * 60 * 1000
-        )
-      },
-    )
-  }
-
-  return filtered
-    .sort(
-      (a, b) =>
-        Number(b.credits || 0) -
-        Number(a.credits || 0),
-    )
-    .map((entry, index) => ({
-      ...entry,
-      rank: index + 1,
-    }))
+export async function saveLeaderboardEntries() {
+  return true
 }
 
-export { LEADERBOARD_KEY }
+
+export async function updateLeaderboardUser() {
+  return true
+}

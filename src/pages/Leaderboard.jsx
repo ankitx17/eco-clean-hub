@@ -10,77 +10,85 @@ import useAuth from "../hooks/useAuth"
 import {
   buildLeaderboard,
   getLeaderboardEntries,
-  updateLeaderboardUser,
 } from "../data/leaderboardData"
-import {
-  getCreditBalance,
-  getUserStats,
-} from "../services/creditService"
 
 function Leaderboard() {
   const { user } = useAuth()
 
   const [period, setPeriod] =
-    useState("weekly")
+    useState("community")
 
   const [entries, setEntries] =
     useState([])
 
-  const loadLeaderboard = () => {
-    if (!user?.uid) return
+  const [loading, setLoading] =
+    useState(true)
 
-    const stats =
-      getUserStats(user.uid)
+  const [error, setError] =
+    useState("")
 
-    const name =
-      user.displayName?.trim() ||
-      user.email?.split("@")[0] ||
-      "You"
+  const loadLeaderboard = async () => {
+    setLoading(true)
+    setError("")
 
-    const updated =
-      updateLeaderboardUser({
-        userId: user.uid,
-        name,
-        credits:
-          getCreditBalance(
-            user.uid,
-          ),
-        verified: stats.verified,
-        wasteKg: stats.wasteKg,
-      })
+    try {
+      const data =
+        await getLeaderboardEntries(
+          period,
+        )
 
-    setEntries(updated)
+      setEntries(data)
+    } catch (error) {
+      console.error(
+        "Failed to load leaderboard:",
+        error,
+      )
+
+      setEntries([])
+
+      setError(
+        "Unable to load leaderboard data.",
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
     loadLeaderboard()
+  }, [period])
 
-    const handleUpdate = () => {
+  useEffect(() => {
+    const handleCreditsUpdate = () => {
+      loadLeaderboard()
+    }
+
+    const handleActivityUpdate = () => {
       loadLeaderboard()
     }
 
     window.addEventListener(
       "eco-clean-hub-credits-updated",
-      handleUpdate,
+      handleCreditsUpdate,
     )
 
     window.addEventListener(
       "eco-clean-hub-activity-updated",
-      handleUpdate,
+      handleActivityUpdate,
     )
 
     return () => {
       window.removeEventListener(
         "eco-clean-hub-credits-updated",
-        handleUpdate,
+        handleCreditsUpdate,
       )
 
       window.removeEventListener(
         "eco-clean-hub-activity-updated",
-        handleUpdate,
+        handleActivityUpdate,
       )
     }
-  }, [user?.uid])
+  }, [period])
 
   const leaderboard = useMemo(
     () =>
@@ -100,6 +108,8 @@ function Leaderboard() {
   return (
     <main className="min-h-screen bg-[#f6faf7] px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
+
+        {/* HEADER */}
         <header className="mb-8">
           <Link
             to="/dashboard"
@@ -131,6 +141,7 @@ function Leaderboard() {
           </p>
         </header>
 
+        {/* PERIOD BUTTONS */}
         <div className="mb-6 flex flex-wrap gap-2 rounded-2xl border border-green-100 bg-white p-2 shadow-sm">
           {[
             ["weekly", "Weekly"],
@@ -154,6 +165,7 @@ function Leaderboard() {
           ))}
         </div>
 
+        {/* YOUR CURRENT RANK */}
         {currentUser && (
           <section className="mb-6 rounded-3xl bg-[#176b45] p-6 text-white shadow-lg">
             <div className="flex items-center justify-between gap-4">
@@ -173,14 +185,18 @@ function Leaderboard() {
                 </p>
 
                 <p className="mt-1 text-2xl font-black">
-                  {currentUser.credits.toLocaleString()}
+                  {Number(
+                    currentUser.credits || 0,
+                  ).toLocaleString()}
                 </p>
               </div>
             </div>
           </section>
         )}
 
+        {/* LEADERBOARD */}
         <section className="overflow-hidden rounded-3xl border border-green-100 bg-white shadow-sm">
+
           <div className="border-b border-slate-100 px-6 py-5">
             <h2 className="text-xl font-black text-[#14231a]">
               {period === "weekly"
@@ -191,75 +207,118 @@ function Leaderboard() {
             </h2>
           </div>
 
-          <div className="divide-y divide-slate-100">
-            {leaderboard.map(
-              (entry) => {
-                const isMe =
-                  entry.id ===
-                  user?.uid
+          {/* LOADING */}
+          {loading && (
+            <div className="px-6 py-12 text-center">
+              <p className="text-sm font-semibold text-slate-500">
+                Loading leaderboard...
+              </p>
+            </div>
+          )}
 
-                return (
-                  <article
-                    key={entry.id}
-                    className={`flex items-center gap-4 px-6 py-5 ${
-                      isMe
-                        ? "bg-green-50/70"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 font-black text-slate-600">
-                      {entry.rank ===
-                      1 ? (
-                        <Crown
-                          size={21}
-                          className="text-yellow-500"
-                        />
-                      ) : entry.rank ===
-                        2 ? (
-                        <Medal
-                          size={21}
-                          className="text-slate-400"
-                        />
-                      ) : entry.rank ===
-                        3 ? (
-                        <Medal
-                          size={21}
-                          className="text-orange-500"
-                        />
-                      ) : (
-                        entry.rank
-                      )}
-                    </div>
+          {/* ERROR */}
+          {!loading && error && (
+            <div className="px-6 py-12 text-center">
+              <p className="text-sm font-semibold text-red-500">
+                {error}
+              </p>
+            </div>
+          )}
 
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-bold text-[#14231a]">
-                        {entry.name}
-                        {isMe &&
-                          " (You)"}
-                      </p>
-
-                      <p className="mt-1 text-xs text-slate-400">
-                        {entry.verified} verified
-                        actions •{" "}
-                        {entry.wasteKg} kg
-                        diverted
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="font-black text-[#176b45]">
-                        {entry.credits.toLocaleString()}
-                      </p>
-
-                      <p className="text-[10px] text-slate-400">
-                        credits
-                      </p>
-                    </div>
-                  </article>
-                )
-              },
+          {/* EMPTY */}
+          {!loading &&
+            !error &&
+            leaderboard.length === 0 && (
+              <div className="px-6 py-12 text-center">
+                <p className="text-sm font-semibold text-slate-500">
+                  No leaderboard data available yet.
+                </p>
+              </div>
             )}
-          </div>
+
+          {/* USERS */}
+          {!loading &&
+            !error &&
+            leaderboard.length > 0 && (
+              <div className="divide-y divide-slate-100">
+                {leaderboard.map(
+                  (entry) => {
+                    const isMe =
+                      entry.id ===
+                      user?.uid
+
+                    return (
+                      <article
+                        key={entry.id}
+                        className={`flex items-center gap-4 px-6 py-5 ${
+                          isMe
+                            ? "bg-green-50/70"
+                            : ""
+                        }`}
+                      >
+
+                        {/* RANK */}
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 font-black text-slate-600">
+                          {entry.rank ===
+                          1 ? (
+                            <Crown
+                              size={21}
+                              className="text-yellow-500"
+                            />
+                          ) : entry.rank ===
+                            2 ? (
+                            <Medal
+                              size={21}
+                              className="text-slate-400"
+                            />
+                          ) : entry.rank ===
+                            3 ? (
+                            <Medal
+                              size={21}
+                              className="text-orange-500"
+                            />
+                          ) : (
+                            entry.rank
+                          )}
+                        </div>
+
+                        {/* USER INFO */}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-bold text-[#14231a]">
+                            {entry.name}
+
+                            {isMe &&
+                              " (You)"}
+                          </p>
+
+                          <p className="mt-1 text-xs text-slate-400">
+                            {entry.verified} verified
+                            actions •{" "}
+                            {entry.wasteKg} kg
+                            diverted
+                          </p>
+                        </div>
+
+                        {/* CREDITS */}
+                        <div className="text-right">
+                          <p className="font-black text-[#176b45]">
+                            {Number(
+                              entry.credits ||
+                                0,
+                            ).toLocaleString()}
+                          </p>
+
+                          <p className="text-[10px] text-slate-400">
+                            credits
+                          </p>
+                        </div>
+
+                      </article>
+                    )
+                  },
+                )}
+              </div>
+            )}
         </section>
       </div>
     </main>
