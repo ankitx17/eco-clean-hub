@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3001
 const GROQ_API_URL =
   "https://api.groq.com/openai/v1/chat/completions"
 
-const MODEL = "qwen/qwen3.6-27b"
+const MODEL = "qwen/qwen3.8-27b"
 
 const AI_TIMEOUT = 60000
 
