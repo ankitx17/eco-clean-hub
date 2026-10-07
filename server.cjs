@@ -1,9 +1,13 @@
 const express = require("express")
 const cors = require("cors")
 const multer = require("multer")
+
 require("dotenv").config()
+
 const app = express()
+
 const PORT = process.env.PORT || 3001
+
 const GROQ_API_URL =
   "https://api.groq.com/openai/v1/chat/completions"
 
@@ -88,9 +92,9 @@ const FALLBACK_GUIDANCE = {
   ],
 }
 
-/* --------------------------------------------------
+/* ==================================================
    MULTER
--------------------------------------------------- */
+================================================== */
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -103,73 +107,125 @@ const upload = multer({
     if (
       !file.mimetype?.startsWith("image/")
     ) {
-      cb(
+      return cb(
         new Error(
-          "Only image files are allowed.",
-        ),
+          "Only image files are allowed."
+        )
       )
-
-      return
     }
 
     cb(null, true)
   },
 })
 
-/* --------------------------------------------------
-   MIDDLEWARE
--------------------------------------------------- */
+/* ==================================================
+   CORS
+================================================== */
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
+/*
+  Production frontend.
+  Add more deployed frontend domains here if needed.
+*/
+const allowedProductionOrigins = [
   "https://eco-clean-hub-one.vercel.app",
 ]
 
 app.use(
   cors({
     origin: (origin, callback) => {
+      /*
+        Requests such as curl/Postman may not
+        contain an Origin header.
+      */
       if (!origin) {
         return callback(null, true)
       }
 
-      if (allowedOrigins.includes(origin)) {
+      /*
+        Allow localhost / 127.0.0.1 on ANY port
+        during development.
+
+        Examples:
+        localhost:5173
+        localhost:5174
+        localhost:5175
+        127.0.0.1:5173
+        etc.
+      */
+      const isLocalDevelopmentOrigin =
+        /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(
+          origin
+        )
+
+      if (isLocalDevelopmentOrigin) {
         return callback(null, true)
       }
 
+      /*
+        Allow deployed production frontend.
+      */
+      if (
+        allowedProductionOrigins.includes(
+          origin
+        )
+      ) {
+        return callback(null, true)
+      }
+
+      console.error(
+        `CORS blocked origin: ${origin}`
+      )
+
       return callback(
-        new Error(`CORS blocked origin: ${origin}`),
+        new Error(
+          `CORS blocked origin: ${origin}`
+        )
       )
     },
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
+    ],
+
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+    ],
+
     credentials: false,
-  }),
+  })
 )
 
 app.use(express.json())
 
-/* --------------------------------------------------
+/* ==================================================
    HEALTH CHECK
--------------------------------------------------- */
+================================================== */
 
 app.get(
   "/api/health",
+
   (req, res) => {
     res.json({
       ok: true,
       provider: "Groq",
       model: MODEL,
+      cleanupVerification: true,
     })
-  },
+  }
 )
 
-/* --------------------------------------------------
-   WASTE CATEGORY NORMALIZATION
--------------------------------------------------- */
+/* ==================================================
+   CATEGORY NORMALIZATION
+================================================== */
 
 function normalizeCategory(
-  category,
+  category
 ) {
   if (
     typeof category !== "string"
@@ -186,18 +242,18 @@ function normalizeCategory(
     ALLOWED_CATEGORIES.find(
       (item) =>
         item.toLowerCase() ===
-        cleaned,
+        cleaned
     )
 
   return match || "Other"
 }
 
-/* --------------------------------------------------
-   WASTE RESULT NORMALIZATION
--------------------------------------------------- */
+/* ==================================================
+   RESULT NORMALIZATION
+================================================== */
 
 function normalizeResult(
-  rawResult,
+  rawResult
 ) {
   let parsed = rawResult
 
@@ -205,7 +261,8 @@ function normalizeResult(
     typeof parsed === "string"
   ) {
     try {
-      parsed = JSON.parse(parsed)
+      parsed =
+        JSON.parse(parsed)
     } catch {
       parsed = null
     }
@@ -216,13 +273,13 @@ function normalizeResult(
     typeof parsed !== "object"
   ) {
     throw new Error(
-      "AI returned invalid JSON.",
+      "AI returned invalid JSON."
     )
   }
 
   const category =
     normalizeCategory(
-      parsed.category,
+      parsed.category
     )
 
   const type =
@@ -237,35 +294,37 @@ function normalizeResult(
 
   if (
     !Number.isFinite(
-      confidence,
+      confidence
     )
   ) {
     confidence = 0
   }
 
-  confidence = Math.max(
-    0,
-    Math.min(
-      100,
-      Math.round(
-        confidence,
-      ),
-    ),
-  )
+  confidence =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(
+          confidence
+        )
+      )
+    )
 
   const guidance =
     Array.isArray(
-      parsed.guidance,
+      parsed.guidance
     )
       ? parsed.guidance
           .filter(
             (item) =>
               typeof item ===
                 "string" &&
-              item.trim(),
+              item.trim()
           )
-          .map((item) =>
-            item.trim(),
+          .map(
+            (item) =>
+              item.trim()
           )
           .slice(0, 5)
       : []
@@ -286,25 +345,25 @@ function normalizeResult(
   }
 }
 
-/* --------------------------------------------------
+/* ==================================================
    GROQ WASTE CLASSIFICATION
--------------------------------------------------- */
+================================================== */
 
 async function callGroq(
   imageBuffer,
-  mimeType,
+  mimeType
 ) {
   if (
     !process.env.GROQ_API_KEY
   ) {
     throw new Error(
-      "GROQ_API_KEY is missing from the server environment.",
+      "GROQ_API_KEY is missing from the server environment."
     )
   }
 
   const base64Image =
     imageBuffer.toString(
-      "base64",
+      "base64"
     )
 
   const imageDataUrl =
@@ -358,9 +417,12 @@ Return exactly this structure:
     new AbortController()
 
   const timeoutId =
-    setTimeout(() => {
-      controller.abort()
-    }, AI_TIMEOUT)
+    setTimeout(
+      () => {
+        controller.abort()
+      },
+      AI_TIMEOUT
+    )
 
   try {
     const response =
@@ -387,15 +449,16 @@ Return exactly this structure:
                 content: [
                   {
                     type: "text",
-
                     text: prompt,
                   },
 
                   {
-                    type: "image_url",
+                    type:
+                      "image_url",
 
                     image_url: {
-                      url: imageDataUrl,
+                      url:
+                        imageDataUrl,
                     },
                   },
                 ],
@@ -411,13 +474,14 @@ Return exactly this structure:
               512,
 
             response_format: {
-              type: "json_object",
+              type:
+                "json_object",
             },
           }),
 
           signal:
             controller.signal,
-        },
+        }
       )
 
     const text =
@@ -430,7 +494,7 @@ Return exactly this structure:
         JSON.parse(text)
     } catch {
       throw new Error(
-        "Groq returned an invalid server response.",
+        "Groq returned an invalid server response."
       )
     }
 
@@ -441,7 +505,9 @@ Return exactly this structure:
         `Groq API request failed with status ${response.status}.`
 
       const error =
-        new Error(errorMessage)
+        new Error(
+          errorMessage
+        )
 
       error.status =
         response.status
@@ -455,94 +521,103 @@ Return exactly this structure:
 
     if (!content) {
       throw new Error(
-        "Groq returned an empty AI response.",
+        "Groq returned an empty AI response."
       )
     }
 
     return normalizeResult(
-      content,
+      content
     )
   } finally {
-    clearTimeout(timeoutId)
+    clearTimeout(
+      timeoutId
+    )
   }
 }
 
-/* --------------------------------------------------
-   CLASSIFY WASTE
--------------------------------------------------- */
+/* ==================================================
+   CLASSIFY WASTE ENDPOINT
+================================================== */
 
 app.post(
   "/api/classify-waste",
+
   upload.single("image"),
 
   async (req, res) => {
     if (!req.file) {
-      return res.status(400).json({
-        error:
-          "No waste image provided.",
-      })
+      return res
+        .status(400)
+        .json({
+          error:
+            "No waste image provided.",
+        })
     }
 
     try {
       const result =
         await callGroq(
           req.file.buffer,
-          req.file.mimetype,
+          req.file.mimetype
         )
 
       return res.json(
-        result,
+        result
       )
     } catch (error) {
       console.error(
         "Waste classification error:",
-        error,
+        error
       )
 
       if (
         error.name ===
         "AbortError"
       ) {
-        return res.status(504).json({
-          error:
-            "AI analysis timed out. Please try again.",
-        })
+        return res
+          .status(504)
+          .json({
+            error:
+              "AI analysis timed out. Please try again.",
+          })
       }
 
       if (
         error.status === 401
       ) {
-        return res.status(500).json({
-          error:
-            "Groq API authentication failed. Check GROQ_API_KEY.",
-        })
+        return res
+          .status(500)
+          .json({
+            error:
+              "Groq API authentication failed. Check GROQ_API_KEY.",
+          })
       }
 
       if (
         error.status === 429
       ) {
-        return res.status(429).json({
-          error:
-            "Groq rate limit reached. Please try again later.",
-        })
+        return res
+          .status(429)
+          .json({
+            error:
+              "Groq rate limit reached. Please try again later.",
+          })
       }
 
-      return res.status(500).json({
-        error:
-          error.message ||
-          "Failed to classify waste.",
-      })
+      return res
+        .status(500)
+        .json({
+          error:
+            error.message ||
+            "Failed to classify waste.",
+        })
     }
-  },
+  }
 )
 
 /* ==================================================
-   CLEANUP VERIFICATION
-   ================================================== */
-
-/* --------------------------------------------------
    CLEANUP VERIFICATION PROMPT
--------------------------------------------------- */
+================================================== */
 
 const CLEANUP_VERIFICATION_PROMPT = `
 You are the cleanup verification AI for Eco Clean Hub.
@@ -570,6 +645,7 @@ IMPORTANT:
 BEFORE PHOTO:
 
 Check whether:
+
 - It shows a real physical area.
 - Visible waste, litter, dirt, or a cleanup need is present.
 - The image is relevant to a cleanup activity.
@@ -578,6 +654,7 @@ Check whether:
 AFTER PHOTO:
 
 Check whether:
+
 - It appears to show the same or substantially similar area as the BEFORE photo.
 - The visible amount of waste appears reduced.
 - The area appears cleaner.
@@ -586,6 +663,7 @@ Check whether:
 ACTION PHOTO:
 
 Check whether:
+
 - A cleanup activity is visibly taking place.
 - A person or team is visibly collecting, handling, sorting, or cleaning waste.
 - Cleanup-related objects such as trash bags, gloves, collection tools, or collected waste are visible when applicable.
@@ -594,6 +672,7 @@ Check whether:
 SAME AREA:
 
 Compare BEFORE and AFTER using visible surroundings such as:
+
 - buildings
 - roads
 - walls
@@ -608,6 +687,7 @@ Do not require an exact pixel match.
 CLEANUP DETECTED:
 
 Consider cleanup evidence credible when:
+
 - the BEFORE image shows a cleanup need,
 - the AFTER image shows visible improvement,
 - and the ACTION image provides supporting evidence of cleanup activity.
@@ -615,6 +695,7 @@ Consider cleanup evidence credible when:
 VERIFICATION:
 
 A submission should be verified only when:
+
 - BEFORE is valid,
 - AFTER is valid,
 - ACTION is valid,
@@ -662,36 +743,36 @@ Do not add markdown.
 Do not add explanations outside JSON.
 `
 
-/* --------------------------------------------------
+/* ==================================================
    GROQ CLEANUP VERIFICATION
--------------------------------------------------- */
+================================================== */
 
 async function callGroqCleanupVerification(
   beforeFile,
   afterFile,
-  actionFile,
+  actionFile
 ) {
   if (
     !process.env.GROQ_API_KEY
   ) {
     throw new Error(
-      "GROQ_API_KEY is missing from the server environment.",
+      "GROQ_API_KEY is missing from the server environment."
     )
   }
 
   const beforeBase64 =
     beforeFile.buffer.toString(
-      "base64",
+      "base64"
     )
 
   const afterBase64 =
     afterFile.buffer.toString(
-      "base64",
+      "base64"
     )
 
   const actionBase64 =
     actionFile.buffer.toString(
-      "base64",
+      "base64"
     )
 
   const beforeImage =
@@ -707,9 +788,12 @@ async function callGroqCleanupVerification(
     new AbortController()
 
   const timeoutId =
-    setTimeout(() => {
-      controller.abort()
-    }, AI_TIMEOUT)
+    setTimeout(
+      () => {
+        controller.abort()
+      },
+      AI_TIMEOUT
+    )
 
   try {
     const response =
@@ -749,10 +833,12 @@ async function callGroqCleanupVerification(
                   },
 
                   {
-                    type: "image_url",
+                    type:
+                      "image_url",
 
                     image_url: {
-                      url: beforeImage,
+                      url:
+                        beforeImage,
                     },
                   },
 
@@ -764,10 +850,12 @@ async function callGroqCleanupVerification(
                   },
 
                   {
-                    type: "image_url",
+                    type:
+                      "image_url",
 
                     image_url: {
-                      url: afterImage,
+                      url:
+                        afterImage,
                     },
                   },
 
@@ -779,10 +867,12 @@ async function callGroqCleanupVerification(
                   },
 
                   {
-                    type: "image_url",
+                    type:
+                      "image_url",
 
                     image_url: {
-                      url: actionImage,
+                      url:
+                        actionImage,
                     },
                   },
                 ],
@@ -798,13 +888,14 @@ async function callGroqCleanupVerification(
               512,
 
             response_format: {
-              type: "json_object",
+              type:
+                "json_object",
             },
           }),
 
           signal:
             controller.signal,
-        },
+        }
       )
 
     const text =
@@ -817,7 +908,7 @@ async function callGroqCleanupVerification(
         JSON.parse(text)
     } catch {
       throw new Error(
-        "Groq returned an invalid server response.",
+        "Groq returned an invalid server response."
       )
     }
 
@@ -828,7 +919,9 @@ async function callGroqCleanupVerification(
         `Groq API request failed with status ${response.status}.`
 
       const error =
-        new Error(errorMessage)
+        new Error(
+          errorMessage
+        )
 
       error.status =
         response.status
@@ -842,7 +935,7 @@ async function callGroqCleanupVerification(
 
     if (!content) {
       throw new Error(
-        "Groq returned an empty verification response.",
+        "Groq returned an empty verification response."
       )
     }
 
@@ -854,41 +947,45 @@ async function callGroqCleanupVerification(
     ) {
       try {
         result =
-          JSON.parse(result)
+          JSON.parse(
+            result
+          )
       } catch {
         throw new Error(
-          "AI verification returned invalid JSON.",
+          "AI verification returned invalid JSON."
         )
       }
     }
 
     const beforeValid =
       Boolean(
-        result.beforeValid,
+        result.beforeValid
       )
 
     const afterValid =
       Boolean(
-        result.afterValid,
+        result.afterValid
       )
 
     const actionValid =
       Boolean(
-        result.actionValid,
+        result.actionValid
       )
 
     const sameAreaLikely =
       Boolean(
-        result.sameAreaLikely,
+        result.sameAreaLikely
       )
 
     const cleanupDetected =
       Boolean(
-        result.cleanupDetected,
+        result.cleanupDetected
       )
 
     let score =
-      Number(result.score)
+      Number(
+        result.score
+      )
 
     if (
       !Number.isFinite(score)
@@ -896,13 +993,14 @@ async function callGroqCleanupVerification(
       score = 0
     }
 
-    score = Math.max(
-      0,
-      Math.min(
-        100,
-        Math.round(score),
-      ),
-    )
+    score =
+      Math.max(
+        0,
+        Math.min(
+          100,
+          Math.round(score)
+        )
+      )
 
     const reason =
       typeof result.reason ===
@@ -913,29 +1011,30 @@ async function callGroqCleanupVerification(
 
     const checks =
       Array.isArray(
-        result.checks,
+        result.checks
       )
         ? result.checks
             .filter(
               (item) =>
                 typeof item ===
                   "string" &&
-                item.trim(),
+                item.trim()
             )
-            .map((item) =>
-              item.trim(),
+            .map(
+              (item) =>
+                item.trim()
             )
             .slice(0, 5)
         : []
 
     /*
-      Final verification is determined
-      by all required visual checks.
+      Final verification is only true
+      if every important visual check passes.
     */
 
     const verified =
       Boolean(
-        result.verified,
+        result.verified
       ) &&
       beforeValid &&
       afterValid &&
@@ -945,31 +1044,25 @@ async function callGroqCleanupVerification(
 
     return {
       verified,
-
       score,
-
       beforeValid,
-
       afterValid,
-
       actionValid,
-
       sameAreaLikely,
-
       cleanupDetected,
-
       reason,
-
       checks,
     }
   } finally {
-    clearTimeout(timeoutId)
+    clearTimeout(
+      timeoutId
+    )
   }
 }
 
-/* --------------------------------------------------
-   VERIFY CLEANUP
--------------------------------------------------- */
+/* ==================================================
+   VERIFY CLEANUP ENDPOINT
+================================================== */
 
 app.post(
   "/api/verify-cleanup",
@@ -993,91 +1086,119 @@ app.post(
 
   async (req, res) => {
     const beforeFile =
-      req.files?.beforePhoto?.[0]
+      req.files
+        ?.beforePhoto?.[0]
 
     const afterFile =
-      req.files?.afterPhoto?.[0]
+      req.files
+        ?.afterPhoto?.[0]
 
     const actionFile =
-      req.files?.actionPhoto?.[0]
+      req.files
+        ?.actionPhoto?.[0]
 
     if (
       !beforeFile ||
       !afterFile ||
       !actionFile
     ) {
-      return res.status(400).json({
-        error:
-          "Before, After and Action photos are required.",
-      })
+      return res
+        .status(400)
+        .json({
+          error:
+            "Before, After and Action photos are required.",
+        })
     }
 
     try {
+      console.log(
+        "AI cleanup verification started..."
+      )
+
       const result =
         await callGroqCleanupVerification(
           beforeFile,
           afterFile,
-          actionFile,
+          actionFile
         )
 
+      console.log(
+        "AI cleanup verification completed:",
+        {
+          verified:
+            result.verified,
+
+          score:
+            result.score,
+        }
+      )
+
       return res.json(
-        result,
+        result
       )
     } catch (error) {
       console.error(
         "Cleanup verification error:",
-        error,
+        error
       )
 
       if (
         error.name ===
         "AbortError"
       ) {
-        return res.status(504).json({
-          error:
-            "AI verification timed out. Please try again.",
-        })
+        return res
+          .status(504)
+          .json({
+            error:
+              "AI verification timed out. Please try again.",
+          })
       }
 
       if (
         error.status === 401
       ) {
-        return res.status(500).json({
-          error:
-            "Groq API authentication failed. Check GROQ_API_KEY.",
-        })
+        return res
+          .status(500)
+          .json({
+            error:
+              "Groq API authentication failed. Check GROQ_API_KEY.",
+          })
       }
 
       if (
         error.status === 429
       ) {
-        return res.status(429).json({
-          error:
-            "Groq rate limit reached. Please try again later.",
-        })
+        return res
+          .status(429)
+          .json({
+            error:
+              "Groq rate limit reached. Please try again later.",
+          })
       }
 
-      return res.status(500).json({
-        error:
-          "Failed to verify cleanup photos.",
+      return res
+        .status(500)
+        .json({
+          error:
+            "Failed to verify cleanup photos.",
 
-        details:
-          error.message,
-      })
+          details:
+            error.message,
+        })
     }
-  },
+  }
 )
 
-/* --------------------------------------------------
+/* ==================================================
    MULTER / GENERAL ERROR HANDLER
--------------------------------------------------- */
+================================================== */
 
 app.use(
   (
     error,
     req,
     res,
-    next,
+    next
   ) => {
     if (
       error instanceof
@@ -1087,56 +1208,92 @@ app.use(
         error.code ===
         "LIMIT_FILE_SIZE"
       ) {
-        return res.status(400).json({
-          error:
-            "Image is too large. Maximum size is 10 MB.",
-        })
+        return res
+          .status(400)
+          .json({
+            error:
+              "Image is too large. Maximum size is 10 MB.",
+          })
       }
 
-      return res.status(400).json({
-        error:
-          error.message,
-      })
+      return res
+        .status(400)
+        .json({
+          error:
+            error.message,
+        })
     }
 
     if (error) {
-      return res.status(400).json({
-        error:
-          error.message ||
-          "Invalid request.",
-      })
+      console.error(
+        "Server middleware error:",
+        error
+      )
+
+      return res
+        .status(400)
+        .json({
+          error:
+            error.message ||
+            "Invalid request.",
+        })
     }
 
     next()
-  },
+  }
 )
 
-/* --------------------------------------------------
+/* ==================================================
    START SERVER
--------------------------------------------------- */
+================================================== */
 
 app.listen(
   PORT,
   "0.0.0.0",
+
   () => {
+    console.log("")
     console.log(
-      `Eco Clean Hub AI server running on http://127.0.0.1:${PORT}`,
+      "=============================================="
     )
 
     console.log(
-      `Provider: Groq`,
+      `Eco Clean Hub AI server running`
     )
 
     console.log(
-      `Model: ${MODEL}`,
+      `http://127.0.0.1:${PORT}`
     )
 
     console.log(
-      `Status: READY`,
+      `Health: http://127.0.0.1:${PORT}/api/health`
     )
 
     console.log(
-      `Cleanup verification: ENABLED`,
+      `Provider: Groq`
     )
-  },
+
+    console.log(
+      `Model: ${MODEL}`
+    )
+
+    console.log(
+      `GROQ_API_KEY present: ${Boolean(
+        process.env.GROQ_API_KEY
+      )}`
+    )
+
+    console.log(
+      `Waste classification: ENABLED`
+    )
+
+    console.log(
+      `Cleanup verification: ENABLED`
+    )
+
+    console.log(
+      "=============================================="
+    )
+    console.log("")
+  }
 )
